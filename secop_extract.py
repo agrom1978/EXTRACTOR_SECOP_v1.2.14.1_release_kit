@@ -699,9 +699,11 @@ def extract_to_excel(
         "Fecha de inicio": fecha_inicio,
         "Fecha de terminación": fecha_fin,
         "Razón social del proponente/contratista": razon_social,
-        "Identificación del proponente/contratista (CC/NIT)": ident_clean,
+        "Identificación del proponente (CC/NIT)": ident,
+        "Identificación del proponente/contratista (limpio)": ident_clean,
         "Representante legal": rep_legal,
-        "Identificación del representante legal (CC/NIT)": rep_ident_clean_final,
+        "Identificación representante legal": rep_ident_final,
+        "Identificación del representante legal (limpio)": rep_ident_clean_final,
         "Código BPIM": bpim,
         "Fuente del documento": "SECOP I (detalleProceso)",
     }
