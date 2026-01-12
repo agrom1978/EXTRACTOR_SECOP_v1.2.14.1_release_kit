@@ -103,135 +103,658 @@ def cleanup_old_downloads(max_age_seconds: int = MAX_DOWNLOAD_AGE_SECONDS) -> in
 
 
 # ============================================================================
-# PLANTILLA HTML
+# PLANTILLA HTML - VERSIÓN MEJORADA CON DISEÑO MODERNO
 # ============================================================================
 HTML = r"""
 <!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Extractor SECOP (Detalle del Proceso)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+  <title>Extractor SECOP - Automatización de Procesos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%232563eb'>📊</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; background: #fff; color:#111; }
-    h1 { margin: 0 0 14px; font-size: 22px; }
-    .card { border: 1px solid #ddd; border-radius: 10px; padding: 18px; max-width: 980px; }
-    label { font-weight: 700; display: block; margin-bottom: 8px; }
-    textarea { width: 100%; min-height: 210px; font-family: Consolas, monospace; font-size: 13px; padding: 10px; border: 1px solid #bbb; border-radius: 6px; box-sizing: border-box; }
-    .row { display:flex; gap: 10px; align-items:center; margin-top: 12px; }
-    button { padding: 10px 16px; border: 1px solid #888; border-radius: 6px; background: #f3f3f3; cursor:pointer; font-size: 14px; }
-    button:hover:not(:disabled) { background: #e0e0e0; }
-    button:disabled { opacity: .6; cursor:not-allowed; }
-    .muted { color:#444; font-size: 13px; }
-    .hint { margin-top: 10px; font-size: 13px; color:#333; line-height: 1.45; }
-    .mono { font-family: Consolas, monospace; }
-    .hr { height:1px; background:#eee; margin: 14px 0; }
-    .status { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background:#fafafa; border:1px solid #eee; }
-    .status strong { display:inline-block; min-width: 140px; }
-    .ok { color:#0b6b0b; }
-    .warn { color:#8a5a00; }
-    .err { color:#9b1c1c; }
-    .footer { margin-top: 12px; font-size: 12px; color:#666; display:flex; justify-content:space-between; }
-    .small { font-size: 12px; }
-    .btn-secondary { background:#fff; }
-    .error-list { margin-top: 8px; max-height: 200px; overflow-y: auto; }
-    .error-item { margin: 4px 0; }
+    /* ============== VARIABLES Y TEMAS ============== */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #ffffff;
+      --bg-secondary: #f9fafb;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --border: #e5e7eb;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111827;
+        --bg-secondary: #1f2937;
+        --text: #f3f4f6;
+        --text-muted: #d1d5db;
+        --border: #374151;
+        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+    }
+    
+    /* ============== RESET Y BASE ============== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html {
+      scroll-behavior: smooth;
+    }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-secondary) 100%);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+    
+    /* ============== HEADER ============== */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .logo-icon {
+      font-size: 40px;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    
+    .logo-text h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .tagline {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    
+    .version-badge {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* ============== CONTENEDOR PRINCIPAL ============== */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+    
+    /* ============== FORMULARIO ============== */
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 14px;
+      background: var(--bg-secondary);
+      color: var(--text);
+      resize: vertical;
+      transition: all 0.3s ease;
+    }
+    
+    textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      background: var(--bg);
+    }
+    
+    textarea::placeholder {
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+    
+    /* ============== INPUTS ============== */
+    .input-hint {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .badge-info {
+      background: rgba(37, 99, 235, 0.1);
+      color: var(--primary);
+    }
+    
+    .badge-success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+    
+    .badge-warning {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+    
+    /* ============== BOTONES ============== */
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 11px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    
+    #btnExtract {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    #btnExtract:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+    }
+    
+    #btnExtract:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    
+    .btn-secondary {
+      background: var(--border);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: transparent;
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ============== PANEL DE ESTADO ============== */
+    .status {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 2px solid var(--success);
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+      display: grid;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    
+    .status.warning {
+      background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+      border-color: var(--warning);
+    }
+    
+    .status.error {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-color: var(--danger);
+    }
+    
+    .status div {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    
+    .status strong {
+      font-weight: 600;
+      min-width: 100px;
+    }
+    
+    /* ============== TEXTO ============== */
+    .mono {
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+    
+    .ok {
+      color: var(--success);
+      font-weight: 600;
+    }
+    
+    .warn {
+      color: var(--warning);
+      font-weight: 600;
+    }
+    
+    .err {
+      color: var(--danger);
+      font-weight: 600;
+    }
+    
+    .small {
+      font-size: 12px;
+    }
+    
+    .muted {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    
+    /* ============== HINT Y INSTRUCCIONES ============== */
+    .hint {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(37, 99, 235, 0.05);
+      border-left: 4px solid var(--primary);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .hint strong {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    .hint ol {
+      margin-left: 20px;
+      margin-top: 8px;
+    }
+    
+    .hint li {
+      margin: 6px 0;
+    }
+    
+    /* ============== PROGRESS ============== */
+    .progress-container {
+      margin: 16px 0;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+      width: 0%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+    }
+    
+    .progress-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+      text-align: center;
+    }
+    
+    /* ============== LISTA DE ERRORES ============== */
+    .error-list {
+      margin-top: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.02);
+      padding: 12px;
+    }
+    
+    .error-item {
+      padding: 10px 12px;
+      margin: 8px 0;
+      background: rgba(239, 68, 68, 0.05);
+      border-left: 4px solid var(--danger);
+      border-radius: 4px;
+      font-size: 13px;
+      line-height: 1.5;
+      transition: all 0.2s ease;
+    }
+    
+    .error-item:hover {
+      background: rgba(239, 68, 68, 0.08);
+    }
+    
+    /* ============== FOOTER ============== */
+    .footer {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+    
+    a:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+    
+    /* ============== RESPONSIVE ============== */
+    @media (max-width: 640px) {
+      body {
+        padding: 12px;
+      }
+      
+      .card {
+        padding: 20px;
+      }
+      
+      .header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      
+      .logo {
+        width: 100%;
+      }
+      
+      .version-badge {
+        width: 100%;
+        text-align: center;
+      }
+      
+      button {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      .row {
+        flex-direction: column;
+      }
+      
+      #btnExtract {
+        width: 100%;
+      }
+      
+      .footer {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>Extractor SECOP (Detalle del Proceso)</h1>
-
-  <div class="card">
-    <!-- PANEL DE RESULTADOS (Mostrado después de extraer) -->
-    <div class="status" style="display:{% if result %}block{% else %}none{% endif %};">
-      <div><strong>Estado:</strong>
-        {% if result and result.ok_count > 0 and result.fail_count == 0 %}<span class="ok">✓ Finalizado</span>
-        {% elif result and result.ok_count > 0 and result.fail_count > 0 %}<span class="warn">⚠ Finalizado con advertencias</span>
-        {% elif result and result.ok_count == 0 and result.fail_count > 0 %}<span class="err">✗ Falló</span>
-        {% else %}<span>—</span>{% endif %}
+  <div class="container">
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">📊</div>
+        <div class="logo-text">
+          <h1>Extractor SECOP</h1>
+          <p class="tagline">Automatización de procesos de contratación</p>
+        </div>
       </div>
-      {% if result %}
-        <div><strong>Detectadas:</strong> {{ result.detected_count }}</div>
-        <div><strong>Correctas:</strong> {{ result.ok_count }}</div>
-        <div><strong>Con error:</strong> {{ result.fail_count }}</div>
-        <div><strong>Salida:</strong> <span class="mono">{{ result.output_name }}</span></div>
-        <div class="hr"></div>
-        {% if result.download_url %}
-          <div><strong>Descarga:</strong> <a href="{{ result.download_url }}">Descargar archivo</a></div>
-        {% endif %}
-        {% if result.fail_count > 0 %}
-          <div class="small" style="margin-top:8px;"><strong>Errores ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong></div>
-          <div class="error-list small">
-            <ul style="margin: 6px 0; padding-left: 20px;">
-              {% for c, e in result.errors %}
-                <li class="error-item"><span class="mono">{{ c }}</span> — {{ e }}</li>
-              {% endfor %}
-            </ul>
+      <div class="version-badge">v{{ version }}</div>
+    </header>
+
+    <div class="card">
+      <!-- PANEL DE RESULTADOS -->
+      <div class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
+        <div>
+          <strong>Estado:</strong>
+          {% if result and result.ok_count > 0 and result.fail_count == 0 %}
+            <span class="ok">✓ Finalizado con éxito</span>
+          {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
+            <span class="warn">⚠️ Finalizado con advertencias</span>
+          {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
+            <span class="err">✗ Falló</span>
+          {% else %}
+            <span>—</span>
+          {% endif %}
+        </div>
+        {% if result %}
+          <div>
+            <strong>Detectadas:</strong>
+            <span class="badge badge-info">📋 {{ result.detected_count }}</span>
           </div>
-          {% if result.has_more_errors %}
-            <div class="small warn" style="margin-top: 8px;">⚠️ Mostrando {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa <span class="mono">reporte_errores.csv</span> en el ZIP para la lista completa.</div>
+          <div>
+            <strong>Correctas:</strong>
+            <span class="badge badge-success">✓ {{ result.ok_count }}</span>
+          </div>
+          <div>
+            <strong>Con error:</strong>
+            <span class="badge badge-warning">✗ {{ result.fail_count }}</span>
+          </div>
+          <div>
+            <strong>Salida:</strong>
+            <span class="mono">{{ result.output_name }}</span>
+          </div>
+          <hr style="margin: 12px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);">
+          {% if result.download_url %}
+            <div>
+              <strong>Descargar:</strong>
+              <a href="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
+                ⬇️ Descargar archivo
+              </a>
+            </div>
+          {% endif %}
+          {% if result.fail_count > 0 %}
+            <div style="margin-top: 12px;">
+              <strong class="small">Errores ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
+              <div class="error-list small">
+                {% for c, e in result.errors %}
+                  <div class="error-item">
+                    <span class="mono">{{ c }}</span> — {{ e }}
+                  </div>
+                {% endfor %}
+              </div>
+              {% if result.has_more_errors %}
+                <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
+                  ⚠️ Mostrando {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa <span class="mono">reporte_errores.csv</span> para la lista completa.
+                </div>
+              {% endif %}
+            </div>
           {% endif %}
         {% endif %}
-      {% endif %}
-    </div>
+      </div>
 
-    <!-- FORMULARIO PRINCIPAL -->
-    <form id="form" method="post" action="{{ url_for('extract') }}">
-      <label for="raw">Números de constancia (numConstancia) — una por línea o tabla completa</label>
-      <textarea 
-        id="raw" 
-        name="raw" 
-        placeholder="Ejemplos:
+      <!-- FORMULARIO PRINCIPAL -->
+      <form id="form" method="post" action="{{ url_for('extract') }}">
+        <label for="raw">Números de constancia (numConstancia)</label>
+        <textarea 
+          id="raw" 
+          name="raw" 
+          placeholder="Ingresa constancias (una por línea):
 25-11-14555665
 25-15-14581710
 
-También puedes pegar una tabla completa: el sistema detecta las constancias automáticamente."
-      >{{ raw or '' }}</textarea>
+O pega una tabla completa: el sistema detecta automáticamente"
+        >{{ raw or '' }}</textarea>
 
-      <div class="row">
-        <button id="btnExtract" type="submit">Extraer</button>
-        <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
-        <span id="preinfo" class="muted"></span>
-      </div>
-
-      <!-- MENSAJES DE PROCESAMIENTO (Oculto hasta submit) -->
-      <div id="runtime" class="hint" style="display:none;">
-        <strong>⏳ Procesando…</strong> Se abrirá un navegador por cada constancia.
-        <div style="margin-top: 8px; font-size: 12px; color: #666;">
-          • Si aparece reCAPTCHA, resuélvelo manualmente.<br/>
-          • La salida se consolida en una sola hoja <span class="mono">Resultados_Extraccion</span>.<br/>
-          • Si hay errores o múltiples constancias, recibirás un <span class="mono">.zip</span> con Excel(es) y reporte de errores.
+        <div class="input-hint">
+          <span id="preinfo" class="badge badge-info" style="display: none;"></span>
         </div>
-      </div>
 
-      <!-- INSTRUCCIONES PERMANENTES -->
-      <div class="hint">
-        <strong>ℹ️ Notas operativas</strong>
-        <ol style="margin-top: 6px;">
-          <li>Se abrirá un navegador (Playwright) por cada constancia.</li>
-          <li>Si aparece reCAPTCHA, lo resuelves manualmente.</li>
-          <li>La salida se consolida en una sola hoja <span class="mono">Resultados_Extraccion</span> (plantilla estándar).</li>
-          <li>Si envías varias constancias o hay fallas, se generará un <span class="mono">.zip</span> con Excel(es) y reporte de errores.</li>
-        </ol>
-      </div>
+        <div class="row">
+          <button id="btnExtract" type="submit">
+            <span id="btnIcon">⚡</span>
+            <span id="btnText">Extraer</span>
+          </button>
+          <button id="btnClear" class="btn-secondary" type="button">🗑️ Limpiar</button>
+        </div>
 
-      <div class="footer">
-        <div>Formato de salida: <span class="mono">Resultados_Extraccion</span> (hoja única)</div>
-        <div><span class="mono">v{{ version }}</span> · O.Guerra26</div>
-      </div>
-    </form>
+        <!-- PROGRESO (Oculto hasta submit) -->
+        <div id="progressContainer" class="progress-container" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">Iniciando extracción...</p>
+        </div>
+
+        <!-- MENSAJES DE PROCESAMIENTO -->
+        <div id="runtime" class="hint" style="display:none;">
+          <strong>⏳ Procesando Constancias</strong>
+          • Se abrirá un navegador por cada constancia<br/>
+          • Resuelve manualmente reCAPTCHA si aparece<br/>
+          • La salida se consolida en una hoja <span class="mono">Resultados_Extraccion</span>
+        </div>
+
+        <!-- INSTRUCCIONES PERMANENTES -->
+        <div class="hint">
+          <strong>ℹ️ Instrucciones de Uso</strong>
+          <ol>
+            <li>Ingresa constancias (una por línea o tabla completa)</li>
+            <li>Haz clic en "Extraer" para iniciar el proceso</li>
+            <li>Se abrirá un navegador por cada constancia</li>
+            <li>Si aparece reCAPTCHA, resuélvelo manualmente</li>
+            <li>Recibirás Excel con los resultados consolidados</li>
+          </ol>
+        </div>
+
+        <div class="footer">
+          <div>📄 Salida: <span class="mono">Resultados_Extraccion</span> (hoja única)</div>
+          <div>🔧 Creado por O.Guerra26</div>
+        </div>
+      </form>
+    </div>
   </div>
 
   <script>
-    // Expresión regular para detectar constancias (sincronizada con constancia_config.py)
     const CONSTANCIA_RE = /\b(\d{2}-\d{1,2}-\d{4,12})\b/g;
     const DASHES_UNICODE = "‐‑‒–—―";
 
     function normalizeText(s){
       let result = (s || "");
-      // Reemplazar nbsp
       result = result.replace(/\u00A0/g, " ");
-      // Reemplazar todos los dashes Unicode
       for (let dash of DASHES_UNICODE) {
         result = result.replace(new RegExp(dash.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), "-");
       }
@@ -241,7 +764,6 @@ También puedes pegar una tabla completa: el sistema detecta las constancias aut
     function detectConstancias(){
       const t = normalizeText(document.getElementById("raw").value);
       const m = t.match(CONSTANCIA_RE) || [];
-      // Deduplicación preservando orden
       const seen = new Set();
       const out = [];
       for (const x of m){
@@ -259,7 +781,12 @@ También puedes pegar una tabla completa: el sistema detecta las constancias aut
     
     function updatePreinfo(){
       const c = detectConstancias();
-      preinfo.textContent = c.length ? `📋 Detectadas: ${c.length} constancia${c.length !== 1 ? 's' : ''}` : "";
+      if (c.length > 0) {
+        preinfo.textContent = `📋 ${c.length} constancia${c.length !== 1 ? 's' : ''} detectada${c.length !== 1 ? 's' : ''}`;
+        preinfo.style.display = "inline-flex";
+      } else {
+        preinfo.style.display = "none";
+      }
     }
     
     raw.addEventListener("input", updatePreinfo);
@@ -271,29 +798,39 @@ También puedes pegar una tabla completa: el sistema detecta las constancias aut
       const status = document.querySelector(".status");
       if (status) { status.style.display = "none"; }
       document.getElementById("runtime").style.display = "none";
+      document.getElementById("progressContainer").style.display = "none";
       const btn = document.getElementById("btnExtract");
       btn.disabled = false;
-      btn.textContent = "Extraer";
-      preinfo.textContent = "";
+      document.getElementById("btnIcon").textContent = "⚡";
+      document.getElementById("btnText").textContent = "Extraer";
       raw.focus();
     });
 
     document.getElementById("form").addEventListener("submit", (e) => {
-      // Validación cliente: no enviar si está vacío
       const raw_val = raw.value.trim();
       const constancias = detectConstancias();
       
       if (!raw_val || constancias.length === 0) {
         e.preventDefault();
-        alert("⚠️ Ingresa al menos una constancia válida");
+        alert("⚠️ Ingresa al menos una constancia válida (formato: YY-XX-NNNN)");
         raw.focus();
         return false;
       }
       
-      // Feedback visual durante procesamiento
       document.getElementById("btnExtract").disabled = true;
-      document.getElementById("btnExtract").textContent = "Procesando…";
+      document.getElementById("btnIcon").innerHTML = '<span class="spinner"></span>';
+      document.getElementById("btnText").textContent = "Procesando...";
       document.getElementById("runtime").style.display = "block";
+      document.getElementById("progressContainer").style.display = "block";
+      
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress > 90) progress = 90;
+        document.getElementById("progressFill").style.width = progress + "%";
+      }, 500);
+      
+      window.addEventListener("beforeunload", () => clearInterval(interval));
     });
   </script>
 </body>
