@@ -10,24 +10,24 @@ FIXTURES_DIR = Path("fixtures/detalle")
 REPORTS_DIR = Path("reports/offline")
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Defina aquí los valores esperados por fixture (archivo HTML).
+# Defina aqui los valores esperados por fixture (archivo HTML).
 # Ejemplo:
 # EXPECTED = {
 #   "Detalle_SAMC_009_25.html": {
-#       "Código Registro Presupuestal (CRP)": "2511250001",
-#       "Identificación del representante legal (limpio)": "84009052",
+#       "Codigo Registro Presupuestal (CRP)": "2511250001",
+#       "Identificacion del representante legal (limpio)": "84009052",
 #   }
 # }
 EXPECTED = {
     # "mi_archivo.html": {
-    #     "Código Registro Presupuestal (CRP)": "2511250001",
-    #     "Identificación del representante legal (limpio)": "84009052",
+    #     "Codigo Registro Presupuestal (CRP)": "2511250001",
+    #     "Identificacion del representante legal (limpio)": "84009052",
     # },
 }
 
 FIELDS_UNDER_TEST = [
-    "Código Registro Presupuestal (CRP)",
-    "Identificación del representante legal (limpio)",
+    "Codigo Registro Presupuestal (CRP)",
+    "Identificacion del representante legal (limpio)",
 ]
 
 
@@ -43,7 +43,7 @@ def main() -> None:
     fixtures = sorted(FIXTURES_DIR.glob("*.html"))
     if not fixtures:
         print(f"No se encontraron fixtures HTML en: {FIXTURES_DIR.resolve()}")
-        print("Coloque aquí archivos .html de 'Detalle del proceso' y vuelva a ejecutar.")
+        print("Coloque aqui archivos .html de 'Detalle del proceso' y vuelva a ejecutar.")
         return
 
     for html_path in fixtures:
@@ -75,9 +75,9 @@ def main() -> None:
         results.append({
             "fixture": html_path.name,
             "status": status,
-            "record": {k: record.get(k, "") for k in ["Código Registro Presupuestal (CRP)",
-                                                     "Identificación del representante legal",
-                                                     "Identificación del representante legal (limpio)"]},
+            "record": {k: record.get(k, "") for k in ["Codigo Registro Presupuestal (CRP)",
+                                                     "Identificacion del representante legal",
+                                                     "Identificacion del representante legal (limpio)"]},
             "mismatches": mismatches,
         })
 
@@ -93,9 +93,9 @@ def main() -> None:
     }
 
     out_path = REPORTS_DIR / f"reporte_validacion_offline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    out_path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    out_path.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
 
-    print("VALIDACIÓN OFFLINE FINALIZADA")
+    print("VALIDACION OFFLINE FINALIZADA")
     print(f"OK: {ok} | FAIL: {fail} | SIN_EXPECTED: {report['summary']['sin_expected']}")
     print(f"Reporte: {out_path.resolve()}")
 

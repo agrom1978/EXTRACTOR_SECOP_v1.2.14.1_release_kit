@@ -14,12 +14,12 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 
 
 # -----------------------------
-# Configuración
+# Configuracion
 # -----------------------------
 SECOP_BASE_URL = "https://www.contratos.gov.co/consultas/detalleProceso.do?numConstancia="
 
 # Constancia tipo: 25-1-241304, 25-15-14542595, etc.
-# Nota: en la práctica SECOP I usa yy-m-xxxxxx o yy-mm-xxxxxx; toleramos 1-2 dígitos en el bloque "xx".
+# Nota: en la practica SECOP I usa yy-m-xxxxxx o yy-mm-xxxxxx; toleramos 1-2 digitos en el bloque "xx".
 CONSTANCIA_RE = re.compile(r"^(?P<yy>\d{2})-(?P<xx>\d{1,2})-(?P<num>\d{4,12})$")
 
 # Soporta guiones Unicode comunes (en dash, em dash, etc.)
@@ -44,7 +44,7 @@ def validate_constancia(constancia: str) -> str:
     c = normalize_constancia(constancia)
     if not CONSTANCIA_RE.match(c):
         raise SecopExtractionError(
-            f"Constancia inválida: '{constancia}'. Formato esperado: YY-XX-NNNN (ej.: 25-1-241304, 25-15-14542595)"
+            f"Constancia invalida: '{constancia}'. Formato esperado: YY-XX-NNNN (ej.: 25-1-241304, 25-15-14542595)"
         )
     return c
 
@@ -70,7 +70,7 @@ def _norm_key(s: str) -> str:
 
 def _extract_kv_from_table(table) -> List[Tuple[str, str]]:
     """
-    Extrae pares (label, value) de una tabla típica de 2 columnas.
+    Extrae pares (label, value) de una tabla tipica de 2 columnas.
     Respeta textareas (objetos largos).
     """
     pairs: List[Tuple[str, str]] = []
@@ -107,7 +107,7 @@ def _find_section_header_td(soup: BeautifulSoup, header_text: str):
 
 def _parse_section_kv(soup: BeautifulSoup, header_text: str) -> List[Tuple[str, str]]:
     """
-    Dado un encabezado de sección (td.tttablas), encuentra la primera tabla útil posterior y la parsea como KV.
+    Dado un encabezado de seccion (td.tttablas), encuentra la primera tabla util posterior y la parsea como KV.
     """
     header_td = _find_section_header_td(soup, header_text)
     if not header_td:
@@ -118,7 +118,7 @@ def _parse_section_kv(soup: BeautifulSoup, header_text: str) -> List[Tuple[str, 
     # Buscar tablas siguientes; tomar la primera que tenga al menos 2 filas KV plausibles
     for table in header_tr.find_all_next("table", limit=12):
         pairs = _extract_kv_from_table(table)
-        # Heurística: al menos 3 pares y labels con algo de contenido
+        # Heuristica: al menos 3 pares y labels con algo de contenido
         if len(pairs) >= 3:
             return pairs
     return []
@@ -145,7 +145,7 @@ def _merge_maps_keep_first(*maps: dict) -> dict:
 
 
 def _norm_text(s: str) -> str:
-    """Normaliza texto para comparaciones tolerantes (sin tildes, sin puntuación, espacios colapsados)."""
+    """Normaliza texto para comparaciones tolerantes (sin tildes, sin puntuacion, espacios colapsados)."""
     if s is None:
         return ""
     s = str(s)
@@ -157,7 +157,7 @@ def _norm_text(s: str) -> str:
 
 
 def _find_row_value_by_label(soup, label_substr: str) -> str:
-    """Busca valor (celda derecha) para una fila cuyo rótulo (celda izquierda) coincide de forma tolerante."""
+    """Busca valor (celda derecha) para una fila cuyo rotulo (celda izquierda) coincide de forma tolerante."""
     target = _norm_text(label_substr)
     if not target:
         return ""
@@ -174,8 +174,8 @@ def _find_row_value_by_label(soup, label_substr: str) -> str:
     return ""
 
 def _find_rp_code(soup) -> str:
-    """Extrae el código RP/CRP desde la tabla con encabezados 'Código|Fecha|Valor' de forma tolerante.
-    No depende del título de sección (SECOP varía el encabezado).
+    """Extrae el codigo RP/CRP desde la tabla con encabezados 'Codigo|Fecha|Valor' de forma tolerante.
+    No depende del titulo de seccion (SECOP varia el encabezado).
     """
     # 1) Tabla por estructura (encabezados)
     for table in soup.find_all("table"):
@@ -208,7 +208,7 @@ def _find_rp_code(soup) -> str:
     return ""
 
 def _parse_all_kv(soup):
-    """Parsea pares etiqueta/valor de manera tolerante recorriendo toda la página.
+    """Parsea pares etiqueta/valor de manera tolerante recorriendo toda la pagina.
 
     - Filas con 2 celdas (th/td o td/td)
     - Ignora tablas de documentos/hitos cuando no tienen estructura KV
@@ -247,7 +247,7 @@ def _parse_section_table(soup: BeautifulSoup, header_text: str) -> Optional[List
             if not cells:
                 continue
             rows.append([_safe_text(c) for c in cells])
-        # Heurística: tabla con encabezado y 1+ filas
+        # Heuristica: tabla con encabezado y 1+ filas
         if len(rows) >= 2 and len(rows[0]) >= 2:
             return rows
     return None
@@ -278,17 +278,17 @@ def _get_first(m: Dict[str, str], keys: List[str]) -> str:
 
 
 def _parse_numero_proceso_informativo(soup: BeautifulSoup) -> str:
-    txt = soup.get_text("\n", strip=True)
-    # Ej: "Detalle del Proceso Número: LIC 001-26"
-    m = re.search(r"Detalle del Proceso N[úu]mero:\s*([^\n\r]+)", txt, flags=re.IGNORECASE)
-    if m:
-        return m.group(1).strip()
+    for line in soup.get_text("\n", strip=True).splitlines():
+        if "detalle del proceso numero" in _norm_text(line):
+            parts = line.split(":", 1)
+            if len(parts) == 2:
+                return parts[1].strip()
     return ""
 
 
 def _parse_fuente_financiacion(soup: BeautifulSoup) -> str:
-    # Preferir tabla "Fuentes de Financiación"
-    rows = _parse_section_table(soup, "Fuentes de Financiación")
+    # Preferir tabla "Fuentes de Financiacion"
+    rows = _parse_section_table(soup, "Fuentes de Financiacion")
     if rows and len(rows) >= 2:
         header = [_norm_key(h) for h in rows[0]]
         # buscamos columna "fuente"
@@ -314,11 +314,11 @@ def _parse_fuente_financiacion(soup: BeautifulSoup) -> str:
 
 def _parse_rp_table(soup: BeautifulSoup) -> Dict[str, str]:
     """
-    Extrae Código RP/CRP, Fecha y Valor desde "Registro Presupuestal del Compromiso (RP)".
+    Extrae Codigo RP/CRP, Fecha y Valor desde "Registro Presupuestal del Compromiso (RP)".
     Retorna dict con claves: codigo_rp, fecha_rp, valor_rp
     """
     out = {"codigo_rp": "", "fecha_rp": "", "valor_rp": ""}
-    # intentar varios encabezados posibles (SECOP I varía)
+    # intentar varios encabezados posibles (SECOP I varia)
     rows = None
     for h in [
         "Registro Presupuestal del Compromiso (R.P.)",
@@ -334,17 +334,17 @@ def _parse_rp_table(soup: BeautifulSoup) -> Dict[str, str]:
     if not rows:
         return out
     header = [_norm_key(h) for h in rows[0]]
-    # índices posibles
+    # indices posibles
     def idx_of(*cands):
         for c in cands:
             nc=_norm_key(c)
             if nc in header:
                 return header.index(nc)
         return None
-    i_codigo = idx_of("Código", "Codigo")
+    i_codigo = idx_of("Codigo", "Codigo")
     i_fecha = idx_of("Fecha")
     i_valor = idx_of("Valor")
-    # Tomar primera fila de datos válida
+    # Tomar primera fila de datos valida
     for r in rows[1:]:
         if not r or len(r) < 2:
             continue
@@ -371,12 +371,12 @@ def fetch_detail_html(constancia: str, headless: bool = False, timeout_ms: int =
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
             # Espera razonable a tablas principales. Si hay reCAPTCHA, el usuario debe resolverlo y luego continuar.
-            # Reintentamos esperar por un elemento común en el detalle.
+            # Reintentamos esperar por un elemento comun en el detalle.
             page.wait_for_timeout(1500)
             try:
-                page.wait_for_selector("text=Información General del Proceso", timeout=20_000)
+                page.wait_for_selector("td.tttablas", timeout=20_000)
             except PWTimeoutError:
-                # No forzamos fallo inmediato; puede haber variaciones o el usuario aún resolviendo captcha.
+                # No forzamos fallo inmediato; puede haber variaciones o el usuario aun resolviendo captcha.
                 pass
             # Espera adicional corta para render
             page.wait_for_timeout(1200)
@@ -396,38 +396,38 @@ def _extract_digits(s: str) -> str:
     return d
 
 def _clean_id(s: str) -> str:
-    """Identificación limpia (solo dígitos)."""
+    """Identificacion limpia (solo digitos)."""
     return _extract_digits(s)
 
 
 def _clean_bpim(raw: str) -> str:
-    """Normaliza BPIN/BPIM a un único código numérico sin leyendas.
+    """Normaliza BPIN/BPIM a un unico codigo numerico sin leyendas.
 
     Objetivo: YYYY + consecutivo (p.ej. 20250000003856). El portal puede traer:
     - 'BPIM: 2025 00000003856'
-    - 'Código BPIM Año 2025 20250000003856'
+    - 'Codigo BPIM Ano 2025 20250000003856'
     - Variaciones con puntos/espacios.
     """
     s = (raw or "").strip()
     if not s:
         return ""
-    # extraer todos los grupos numéricos
+    # extraer todos los grupos numericos
     nums = re.findall(r"\d+", s)
     if not nums:
         return ""
 
-    # Si ya existe un token largo que empieza por 20xx, usar el más largo.
+    # Si ya existe un token largo que empieza por 20xx, usar el mas largo.
     candidates = [n for n in nums if len(n) >= 12 and n.startswith("20")]
     if candidates:
-        # elegir el más largo; si empate, el primero
+        # elegir el mas largo; si empate, el primero
         candidates.sort(key=lambda x: (-len(x), nums.index(x)))
         return candidates[0]
 
-    # Caso típico separado: '2025' + '00000003856' -> concatenar
+    # Caso tipico separado: '2025' + '00000003856' -> concatenar
     year_tokens = [n for n in nums if len(n) == 4 and n.startswith("20")]
     if year_tokens:
         year = year_tokens[0]
-        # elegir el token más largo que NO sea el año y que no empiece por 20
+        # elegir el token mas largo que NO sea el ano y que no empiece por 20
         others = [n for n in nums if n != year]
         if others:
             other = max(others, key=len)
@@ -435,7 +435,7 @@ def _clean_bpim(raw: str) -> str:
             if len(merged) >= 12:
                 return merged
 
-    # Fallback: si hay un token largo sin '20', devolver el más largo
+    # Fallback: si hay un token largo sin '20', devolver el mas largo
     other_long = [n for n in nums if len(n) >= 10]
     if other_long:
         return max(other_long, key=len)
@@ -444,10 +444,10 @@ def _clean_bpim(raw: str) -> str:
 
 
 def _clean_fuente_financiacion(raw: str) -> str:
-    """Normaliza la fuente de financiación a un catálogo corto y útil.
+    """Normaliza la fuente de financiacion a un catalogo corto y util.
 
     Ejemplos de salida:
-    - 'Sistema General de Regalías'
+    - 'Sistema General de Regalias'
     - 'Sistema General de Participaciones (SGP)'
     - 'Recursos propios'
     - 'Otros recursos'
@@ -459,7 +459,7 @@ def _clean_fuente_financiacion(raw: str) -> str:
 
     # Prioridad por especificidad
     if "regalia" in n or "sgr" in n:
-        return "Sistema General de Regalías"
+        return "Sistema General de Regalias"
     if "participacion" in n or re.search(r"\bsgp\b", n):
         return "Sistema General de Participaciones (SGP)"
     if "propio" in n:
@@ -469,9 +469,9 @@ def _clean_fuente_financiacion(raw: str) -> str:
 
     # Si no clasifica, devolver el texto original recortado (sin encabezados comunes)
     # Quitar palabras de encabezado frecuentes
-    for junk in ["fuente", "financiacion", "financiación", "valor", "tipo"]:
+    for junk in ["fuente", "financiacion", "financiacion", "valor", "tipo"]:
         n = n.replace(junk, "").strip()
-    # Si quedó vacío, devolver original
+    # Si quedo vacio, devolver original
     return s if n else s
 
 
@@ -479,20 +479,20 @@ def _clean_money(s: str) -> str:
     """Convierte un valor monetario a entero (COP) truncando decimales de forma segura.
 
     Evita inflar el valor cuando la fuente trae ',00' o '.00' y se eliminan separadores.
-    Soporta formatos típicos:
+    Soporta formatos tipicos:
       - es-CO: 608.603.520.000,00
       - en-US: 608,603,520,000.00
       - enteros: 608603520000
-    Devuelve string de dígitos (sin separadores)."""
+    Devuelve string de digitos (sin separadores)."""
     s = (s or "").strip()
     if not s:
         return ""
-    # Dejar sólo dígitos y separadores de miles/decimales
+    # Dejar solo digitos y separadores de miles/decimales
     raw = re.sub(r"[^0-9,\.]", "", s)
     if not raw:
         return ""
 
-    # Caso mixto con ambos separadores: decidir decimal por el último separador
+    # Caso mixto con ambos separadores: decidir decimal por el ultimo separador
     if "," in raw and "." in raw:
         last_comma = raw.rfind(",")
         last_dot = raw.rfind(".")
@@ -505,27 +505,27 @@ def _clean_money(s: str) -> str:
             int_part = raw.split(".", 1)[0]
             return re.sub(r"[^0-9]", "", int_part)
 
-    # Sólo coma
+    # Solo coma
     if "," in raw and "." not in raw:
         left, right = raw.split(",", 1)
-        # si son 2 dígitos al final, asumimos decimal
+        # si son 2 digitos al final, asumimos decimal
         if right.isdigit() and len(right) == 2:
             return re.sub(r"[^0-9]", "", left)
         # si no, es separador de miles
         return re.sub(r"[^0-9]", "", raw)
 
-    # Sólo punto
+    # Solo punto
     if "." in raw and "," not in raw:
         left, right = raw.split(".", 1)
         if right.isdigit() and len(right) == 2:
             return re.sub(r"[^0-9]", "", left)
         return re.sub(r"[^0-9]", "", raw)
 
-    # Sólo dígitos
+    # Solo digitos
     return re.sub(r"[^0-9]", "", raw)
 
 def _extract_rp_code(raw: str) -> str:
-    """Normaliza RP/CRP a un código simple (solo dígitos)."""
+    """Normaliza RP/CRP a un codigo simple (solo digitos)."""
     s = (raw or "").strip()
     if not s:
         return ""
@@ -536,7 +536,7 @@ def _extract_rp_code(raw: str) -> str:
 
 
 def _extract_crp_code(soup: BeautifulSoup) -> str:
-    """Extrae el código CRP usando tabla + fallback (elimina duplicación)."""
+    """Extrae el codigo CRP usando tabla + fallback (elimina duplicacion)."""
     rp = _parse_rp_table(soup)
     crp_from_table = _extract_rp_code(rp.get("codigo_rp", ""))
     if not crp_from_table:
@@ -547,35 +547,35 @@ def _extract_crp_code(soup: BeautifulSoup) -> str:
 
 
 def _determine_tipo_proceso(bpim: str, fuente_fin: str, rp_code: str) -> str:
-    # Regla simple y conservadora: si hay BPIM -> Inversión.
+    # Regla simple y conservadora: si hay BPIM -> Inversion.
     if bpim:
-        return "Inversión"
-    # Si hay fuente de financiación o RP, suele ser inversión en contexto municipal.
+        return "Inversion"
+    # Si hay fuente de financiacion o RP, suele ser inversion en contexto municipal.
     if fuente_fin or rp_code:
-        return "Inversión"
+        return "Inversion"
     return "Otro"
 
 
 def _estado_validacion(record: Dict[str, str]) -> Tuple[str, str]:
-    # Campos críticos para que el cuadro sea útil
+    # Campos criticos para que el cuadro sea util
     critical = {
-        "Modalidad de contratación": record.get("Modalidad de contratación", ""),
+        "Modalidad de contratacion": record.get("Modalidad de contratacion", ""),
         "Objeto del contrato": record.get("Objeto del contrato", ""),
         "Valor del contrato (COP)": record.get("Valor del contrato (COP)", ""),
-        "Razón social del proponente/contratista": record.get("Razón social del proponente/contratista", ""),
+        "Razon social del proponente/contratista": record.get("Razon social del proponente/contratista", ""),
     }
 
     missing = [k for k, v in critical.items() if not (v or "").strip()]
     if not missing:
         return "Completo", ""
     if len(missing) == 1:
-        return "Revisión", f"Falta: {missing[0]}"
+        return "Revision", f"Falta: {missing[0]}"
     return "Incompleto", "Faltan: " + "; ".join(missing)
 
 
 def _load_template(template_path: Path):
     if not template_path.exists():
-        raise SecopExtractionError(f"No se encontró la plantilla: {template_path}")
+        raise SecopExtractionError(f"No se encontro la plantilla: {template_path}")
     wb = openpyxl.load_workbook(template_path)
     if "Resultados_Extraccion" not in wb.sheetnames:
         raise SecopExtractionError("La plantilla no contiene la hoja 'Resultados_Extraccion'.")
@@ -584,8 +584,8 @@ def _load_template(template_path: Path):
 
 def _find_next_row(ws) -> int:
     """
-    Encuentra la siguiente fila vacía basada en columnas A y B (A=Numero proceso info, B=Constancia),
-    porque C tiene fórmula y no sirve para detectar vacío.
+    Encuentra la siguiente fila vacia basada en columnas A y B (A=Numero proceso info, B=Constancia),
+    porque C tiene formula y no sirve para detectar vacio.
     """
     for r in range(2, ws.max_row + 2):
         a = ws.cell(row=r, column=1).value
@@ -595,6 +595,142 @@ def _find_next_row(ws) -> int:
     return ws.max_row + 1
 
 
+def _get_hyperlink_base(wb) -> str:
+    base = ""
+    if "Config" in wb.sheetnames:
+        base = str(wb["Config"]["B1"].value or "").strip()
+    if not base:
+        base = SECOP_BASE_URL
+    return base
+
+
+def _write_record_row(ws, wb, headers, record: Dict[str, str], constancia_ok: str, row_idx: int) -> None:
+    record_norm = {_norm_key(k): v for k, v in record.items()}
+    base = _get_hyperlink_base(wb)
+    for col_idx, h in enumerate(headers, start=1):
+        if not h:
+            continue
+        h_norm = _norm_key(str(h))
+        if h_norm == _norm_key("Abrir detalle"):
+            cell = ws.cell(row=row_idx, column=col_idx)
+            cell.value = "Abrir"
+            cell.hyperlink = base + constancia_ok
+            try:
+                cell.style = "Hyperlink"
+            except Exception:
+                pass
+            continue
+        if h_norm in record_norm:
+            ws.cell(row=row_idx, column=col_idx, value=record_norm[h_norm])
+
+
+def _build_record_from_soup(soup: BeautifulSoup, constancia_ok: str) -> Dict[str, str]:
+    # Extracciones dirigidas (sin depender de secciones): representante legal e RP
+    rep_id_raw = _find_row_value_by_label(soup, "Identificacion del Representante Legal")
+
+    # 0) Baseline KV tolerante (anti-regresion)
+    baseline_pairs = _parse_all_kv(soup)
+    baseline_map = _kv_to_map(baseline_pairs)
+
+    # 1) General (KV por seccion) - si no se encuentra, se apoya en baseline_map
+    general_pairs = _parse_section_kv(soup, "Informacion General del Proceso")
+    general_map = _merge_maps_keep_first(_kv_to_map(general_pairs), baseline_map)
+
+    # 2) Contrato (KV por seccion) - si no se encuentra, se apoya en baseline_map
+    contrato_pairs = _parse_section_kv(soup, "Informacion del Contrato")
+    contrato_map = _merge_maps_keep_first(_kv_to_map(contrato_pairs), baseline_map)
+
+    # 3) Presupuestal (RP table + fallback KV)
+    # Prioridad RP: tabla presupuestal de la seccion; fallback conservador a busqueda tolerante
+    crp = _extract_crp_code(soup)
+
+    # Campo informativo "Numero de proceso"
+    num_proceso_info = _parse_numero_proceso_informativo(soup)
+
+    modalidad = _get_first(general_map, ["Tipo de Proceso", "Modalidad de Contratacion", "Modalidad"])
+    estado_proc = _get_first(general_map, ["Estado del Proceso", "Estado del Contrato", "Estado"])
+
+    fuente_fin = _parse_fuente_financiacion(soup)
+    if not fuente_fin:
+        fuente_fin = _get_first(general_map, ["Fuente de Financiacion", "Fuentes de Financiacion", "Fuente"])
+
+    fuente_fin = _clean_fuente_financiacion(fuente_fin)
+
+    # Contrato info
+    num_contrato = _get_first(contrato_map, ["Numero del Contrato", "No. Contrato", "Contrato No", "Numero de Contrato"])
+    objeto = _get_first(contrato_map, ["Objeto del Contrato", "Objeto"])
+    valor = _get_first(contrato_map, ["Cuantia Definitiva del Contrato", "Cuantia del Contrato", "Valor del Contrato", "Cuantia", "Valor"])
+    valor_num = _clean_money(valor)
+
+    plazo = _get_first(contrato_map, ["Plazo de Ejecucion del Contrato", "Plazo de Ejecucion", "Plazo"])
+    fecha_inicio = _get_first(contrato_map, ["Fecha de Inicio de Ejecucion del Contrato", "Fecha de Inicio", "Fecha inicio"])
+    fecha_fin = _get_first(contrato_map, ["Fecha de Terminacion del Contrato", "Fecha de Terminacion", "Fecha fin", "Fecha terminacion"])
+
+    razon_social = _get_first(contrato_map, ["Nombre o Razon Social del Contratista", "Nombre o Razon Social del Contratista", "Contratista", "Adjudicatario"])
+    ident = _get_first(contrato_map, ["Identificacion del Contratista", "Identificacion del Contratista", "NIT del Contratista", "NIT", "Cedula", "Cedula", "Identificacion", "Identificacion"])
+    if not ident:
+        ident = _get_first(general_map, ["Identificacion", "Identificacion", "NIT", "Cedula", "Cedula"])
+    rep_legal = _get_first(contrato_map, ["Nombre del Representante Legal del Contratista", "Representante Legal", "Representante"])
+    if not rep_legal:
+        rep_legal = _get_first(general_map, ["Representante Legal", "Representante"])
+    rep_ident = _get_first(contrato_map, ["Identificacion del Representante Legal del Contratista", "Identificacion Representante Legal", "Cedula Representante", "Cedula Representante", "Identificacion Representante", "Identificacion Representante"])
+
+    ident_clean = _clean_id(ident)
+    rep_ident_clean = _clean_id(rep_ident)
+
+    # Prioridad: identificacion del representante legal capturada por rotulo (mas estable en SECOP)
+    rep_ident_final = rep_id_raw or rep_ident
+    rep_ident_clean_final = _clean_id(rep_ident_final)
+
+    # BPIM (si esta en cualquier mapa)
+    bpim = _get_first(contrato_map, ["BPIM", "BPIN", "Codigo BPIM", "Codigo BPIM"])
+    if not bpim:
+        bpim = _get_first(general_map, ["BPIM", "BPIN", "Codigo BPIM", "Codigo BPIM"])
+
+    bpim = _clean_bpim(bpim)
+
+    tipo_proc = _determine_tipo_proceso(bpim, fuente_fin, crp)
+
+    record = {
+        "Numero de proceso (informativo)": num_proceso_info,
+        "Numero de constancia": constancia_ok,
+        "Tipo de proceso": tipo_proc,
+        "Estado del proceso": estado_proc,
+        "Modalidad de contratacion": modalidad,
+        "Fuente de financiacion": fuente_fin,
+        "Codigo Registro Presupuestal (CRP)": crp,
+        "Numero de contrato": num_contrato,
+        "Objeto del contrato": objeto,
+        "Valor del contrato (COP)": valor_num,
+        "Plazo de ejecucion": plazo,
+        "Fecha de inicio": fecha_inicio,
+        "Fecha de terminacion": fecha_fin,
+        "Razon social del proponente/contratista": razon_social,
+        "Identificacion del proponente (CC/NIT)": ident,
+        "Identificacion del proponente/contratista (limpio)": ident_clean,
+        "Representante legal": rep_legal,
+        "Identificacion representante legal": rep_ident_final,
+        "Identificacion del representante legal (limpio)": rep_ident_clean_final,
+        "Codigo BPIM": bpim,
+        "Fuente del documento": "SECOP I (detalleProceso)",
+    }
+
+    estado_val, obs_val = _estado_validacion(record)
+    # Observaciones extendidas: anadir faltantes de campos importantes de contrato/presupuesto
+    obs_parts = []
+    if obs_val:
+        obs_parts.append(obs_val)
+    # Faltantes extra
+    extra_keys = ["Numero de contrato", "Plazo de ejecucion", "Fecha de inicio"]
+    missing_extra = [k for k in extra_keys if not (record.get(k) or "").strip()]
+    if missing_extra:
+        obs_parts.append("Campos sin dato: " + ", ".join(missing_extra))
+    record["Estado de validacion"] = estado_val
+    record["Observaciones"] = " | ".join(obs_parts).strip(" |")
+
+    return record
+
+
 def extract_to_excel(
     constancia: str,
     out_dir: Path,
@@ -602,7 +738,7 @@ def extract_to_excel(
     template_path: Optional[Path] = None,
 ) -> Path:
     """
-    Extrae datos del detalle SECOP I y llena la plantilla estándar (v1.2.3+).
+    Extrae datos del detalle SECOP I y llena la plantilla estandar (v1.2.3+).
     Genera un XLSX por constancia (la UI puede agruparlos en ZIP).
     """
     constancia_ok = validate_constancia(constancia)
@@ -614,112 +750,7 @@ def extract_to_excel(
 
     html = fetch_detail_html(constancia_ok, headless=headless)
     soup = BeautifulSoup(html, "html.parser")
-
-    # Extracciones dirigidas (sin depender de secciones): representante legal e RP
-    rep_id_raw = _find_row_value_by_label(soup, "Identificación del Representante Legal")
-
-    # 0) Baseline KV tolerante (anti-regresión)
-    baseline_pairs = _parse_all_kv(soup)
-    baseline_map = _kv_to_map(baseline_pairs)
-
-    # 1) General (KV por sección) — si no se encuentra, se apoya en baseline_map
-    general_pairs = _parse_section_kv(soup, "Información General del Proceso")
-    general_map = _merge_maps_keep_first(_kv_to_map(general_pairs), baseline_map)
-
-    # 2) Contrato (KV por sección) — si no se encuentra, se apoya en baseline_map
-    contrato_pairs = _parse_section_kv(soup, "Información del Contrato")
-    contrato_map = _merge_maps_keep_first(_kv_to_map(contrato_pairs), baseline_map)
-
-    # 3) Presupuestal (RP table + fallback KV)
-    # Prioridad RP: tabla presupuestal de la sección; fallback conservador a búsqueda tolerante
-    crp = _extract_crp_code(soup)
-
-
-    # Campo informativo "Número de proceso"
-    num_proceso_info = _parse_numero_proceso_informativo(soup)
-
-    modalidad = _get_first(general_map, ["Tipo de Proceso", "Modalidad de Contratación", "Modalidad"])
-    estado_proc = _get_first(general_map, ["Estado del Proceso", "Estado del Contrato", "Estado"])
-
-    fuente_fin = _parse_fuente_financiacion(soup)
-    if not fuente_fin:
-        fuente_fin = _get_first(general_map, ["Fuente de Financiación", "Fuentes de Financiación", "Fuente"])
-
-
-    fuente_fin = _clean_fuente_financiacion(fuente_fin)
-
-    # Contrato info
-    num_contrato = _get_first(contrato_map, ["Número del Contrato", "No. Contrato", "Contrato No", "Número de Contrato"])
-    objeto = _get_first(contrato_map, ["Objeto del Contrato", "Objeto"])
-    valor = _get_first(contrato_map, ["Cuantía Definitiva del Contrato", "Cuantía del Contrato", "Valor del Contrato", "Cuantía", "Valor"])
-    valor_num = _clean_money(valor)
-
-    plazo = _get_first(contrato_map, ["Plazo de Ejecución del Contrato", "Plazo de Ejecución", "Plazo"])
-    fecha_inicio = _get_first(contrato_map, ["Fecha de Inicio de Ejecución del Contrato", "Fecha de Inicio", "Fecha inicio"])
-    fecha_fin = _get_first(contrato_map, ["Fecha de Terminación del Contrato", "Fecha de Terminación", "Fecha fin", "Fecha terminacion"])
-
-    razon_social = _get_first(contrato_map, ["Nombre o Razón Social del Contratista", "Nombre o Razon Social del Contratista", "Contratista", "Adjudicatario"])
-    ident = _get_first(contrato_map, ["Identificación del Contratista", "Identificacion del Contratista", "NIT del Contratista", "NIT", "Cédula", "Cedula", "Identificación", "Identificacion"])
-    if not ident:
-        ident = _get_first(general_map, ["Identificación", "Identificacion", "NIT", "Cédula", "Cedula"])
-    rep_legal = _get_first(contrato_map, ["Nombre del Representante Legal del Contratista", "Representante Legal", "Representante"])
-    if not rep_legal:
-        rep_legal = _get_first(general_map, ["Representante Legal", "Representante"])
-    rep_ident = _get_first(contrato_map, ["Identificación del Representante Legal del Contratista", "Identificacion Representante Legal", "Cédula Representante", "Cedula Representante", "Identificación Representante", "Identificacion Representante"]) 
-
-    ident_clean = _clean_id(ident)
-    rep_ident_clean = _clean_id(rep_ident)
-
-    # Prioridad: identificación del representante legal capturada por rótulo (más estable en SECOP)
-    rep_ident_final = rep_id_raw or rep_ident
-    rep_ident_clean_final = _clean_id(rep_ident_final)
-
-    # BPIM (si está en cualquier mapa)
-    bpim = _get_first(contrato_map, ["BPIM", "BPIN", "Código BPIM", "Codigo BPIM"])
-    if not bpim:
-        bpim = _get_first(general_map, ["BPIM", "BPIN", "Código BPIM", "Codigo BPIM"])
-
-
-    bpim = _clean_bpim(bpim)
-
-    tipo_proc = _determine_tipo_proceso(bpim, fuente_fin, crp)
-
-    record = {
-        "Número de proceso (informativo)": num_proceso_info,
-        "Número de constancia": constancia_ok,
-        "Tipo de proceso": tipo_proc,
-        "Estado del proceso": estado_proc,
-        "Modalidad de contratación": modalidad,
-        "Fuente de financiación": fuente_fin,
-        "Código Registro Presupuestal (CRP)": crp,
-        "Número de contrato": num_contrato,
-        "Objeto del contrato": objeto,
-        "Valor del contrato (COP)": valor_num,
-        "Plazo de ejecución": plazo,
-        "Fecha de inicio": fecha_inicio,
-        "Fecha de terminación": fecha_fin,
-        "Razón social del proponente/contratista": razon_social,
-        "Identificación del proponente (CC/NIT)": ident,
-        "Identificación del proponente/contratista (limpio)": ident_clean,
-        "Representante legal": rep_legal,
-        "Identificación representante legal": rep_ident_final,
-        "Identificación del representante legal (limpio)": rep_ident_clean_final,
-        "Código BPIM": bpim,
-        "Fuente del documento": "SECOP I (detalleProceso)",
-    }
-
-    estado_val, obs_val = _estado_validacion(record)
-    # Observaciones extendidas: añadir faltantes de campos importantes de contrato/presupuesto
-    obs_parts = []
-    if obs_val:
-        obs_parts.append(obs_val)
-    # Faltantes extra
-    extra_keys = ["Número de contrato", "Plazo de ejecución", "Fecha de inicio"]  # RP/CRP puede no estar publicado; no se fuerza como faltante
-    missing_extra = [k for k in extra_keys if not (record.get(k) or "").strip()]
-    if missing_extra:
-        obs_parts.append("Campos sin dato: " + ", ".join(missing_extra))
-    record["Estado de validación"] = estado_val
-    record["Observaciones"] = " | ".join(obs_parts).strip(" |")
+    record = _build_record_from_soup(soup, constancia_ok)
 
     # Escribir en plantilla
     wb = _load_template(template_path)
@@ -727,54 +758,76 @@ def extract_to_excel(
     headers = [c.value for c in ws[1]]
 
     row_idx = _find_next_row(ws)
-    # escribe columnas existentes
-    for col_idx, h in enumerate(headers, start=1):
-        if not h:
-            continue
-        if h == "Abrir detalle":
-            # Hipervínculo directo (visible en más visores que la fórmula).
-            cell = ws.cell(row=row_idx, column=col_idx)
-            base = ""
-            if "Config" in wb.sheetnames:
-                base = str(wb["Config"]["B1"].value or "").strip()
-            if not base:
-                base = SECOP_BASE_URL
-            cell.value = "Abrir"
-            cell.hyperlink = base + constancia_ok
-            try:
-                cell.style = "Hyperlink"
-            except Exception:
-                pass
-            continue
-        if h in record:
-            ws.cell(row=row_idx, column=col_idx, value=record[h])
+    _write_record_row(ws, wb, headers, record, constancia_ok, row_idx)
 
     out_path = out_dir / f"Resultados_Extraccion_{constancia_ok}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     wb.save(out_path)
     return out_path
 
 
+def extract_batch_to_excel(
+    constancias: List[str],
+    out_dir: Path,
+    headless: bool = False,
+    template_path: Optional[Path] = None,
+) -> Tuple[Path, List[Tuple[str, str]]]:
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    if template_path is None:
+        template_path = Path(__file__).parent / "templates" / "Plantilla_Salida_EXTRACTOR_SECOP_v1.2.10.xlsx"
+
+    wb = _load_template(template_path)
+    ws = wb["Resultados_Extraccion"]
+    headers = [c.value for c in ws[1]]
+    row_idx = _find_next_row(ws)
+
+    errors: List[Tuple[str, str]] = []
+    for c in constancias:
+        try:
+            constancia_ok = validate_constancia(c)
+            html = fetch_detail_html(constancia_ok, headless=headless)
+            soup = BeautifulSoup(html, "html.parser")
+            record = _build_record_from_soup(soup, constancia_ok)
+            _write_record_row(ws, wb, headers, record, constancia_ok, row_idx)
+            row_idx += 1
+        except Exception as e:
+            errors.append((c, str(e)))
+
+    if errors:
+        if "Errores" in wb.sheetnames:
+            del wb["Errores"]
+        ws_err = wb.create_sheet("Errores")
+        ws_err.append(["numConstancia", "error"])
+        for c, err in errors:
+            ws_err.append([c, err])
+
+    out_path = out_dir / f"Resultados_Extraccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    wb.save(out_path)
+    return out_path, errors
+
+
 def extract_record_from_html(html: str, constancia_ok: str = "") -> dict:
-    """Extrae un subconjunto de campos críticos desde HTML (modo OFFLINE).
+    """Extrae un subconjunto de campos criticos desde HTML (modo OFFLINE).
 
     - No usa Playwright
     - No escribe Excel
-    - Está diseñado para validación y regresión de extracción (RP e identificación RL)
+    - Esta disenado para validacion y regresion de extraccion (RP e identificacion RL)
     """
     soup = BeautifulSoup(html, "html.parser")
 
-    # Identificación representante legal (prioridad por rótulo)
-    rep_ident_raw = _find_row_value_by_label(soup, "Identificación del Representante Legal")
+    # Identificacion representante legal (prioridad por rotulo)
+    rep_ident_raw = _find_row_value_by_label(soup, "Identificacion del Representante Legal")
     rep_ident_final = rep_ident_raw.strip() if rep_ident_raw else ""
     rep_ident_clean_final = _clean_id(rep_ident_final)
 
-    # RP/CRP (prioridad por tabla de sección; fallback tolerante)
+    # RP/CRP (prioridad por tabla de seccion; fallback tolerante)
     crp = _extract_crp_code(soup)
 
     return {
-        "Número de constancia": constancia_ok,
-        "Código Registro Presupuestal (CRP)": crp,
-        "Identificación del representante legal (CC/NIT)": rep_ident_clean_final,
+        "Numero de constancia": constancia_ok,
+        "Codigo Registro Presupuestal (CRP)": crp,
+        "Identificacion del representante legal (CC/NIT)": rep_ident_clean_final,
     }
 
 

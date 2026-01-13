@@ -4,9 +4,9 @@ Interfaz web Flask para procesamiento por lotes de constancias SECOP.
 
 Proporciona:
 - Interfaz HTML simple para ingresar constancias
-- Detección automática de constancias en texto pegado
+- Deteccion automatica de constancias en texto pegado
 - Procesamiento secuencial con manejo de reCAPTCHA
-- Empaquetado automático de resultados en ZIP
+- Empaquetado automatico de resultados en ZIP
 - Descargas seguras con tokens aleatorios
 """
 
@@ -16,19 +16,17 @@ import os
 import secrets
 import logging
 import time
-import zipfile
-from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Dict
 from html import escape
 
-from flask import Flask, request, send_file, render_template_string, url_for, redirect
+from flask import Flask, request, send_file, render_template_string, url_for, redirect, after_this_request
 
 import secop_extract
 import constancia_config
 
 # ============================================================================
-# CONFIGURACIÓN DE LOGGING
+# CONFIGURACION DE LOGGING
 # ============================================================================
 logging.basicConfig(
     level=logging.INFO,
@@ -39,42 +37,42 @@ logger = logging.getLogger(__name__)
 APP = Flask(__name__)
 
 # ============================================================================
-# CONFIGURACIÓN DE SEGURIDAD
+# CONFIGURACION DE SEGURIDAD
 # ============================================================================
 secret = os.environ.get("SECOP_UI_SECRET")
 if not secret:
     secret = "secop-ui-local-default"
     logger.warning(
-        "⚠️ Variable SECOP_UI_SECRET no configurada. "
-        "Usa una clave segura en producción."
+        "ALERTA Variable SECOP_UI_SECRET no configurada. "
+        "Usa una clave segura en produccion."
     )
 
 APP.secret_key = secret
 
 # ============================================================================
-# CONFIGURACIÓN DE DIRECTORIOS Y DESCARGAS
+# CONFIGURACION DE DIRECTORIOS Y DESCARGAS
 # ============================================================================
 DEFAULT_OUTPUT_DIR = Path.home() / "secop_exports"
 OUTPUT_DIR = Path(os.environ.get("SECOP_OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR)))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Mapeo en memoria: token -> (ruta de archivo, timestamp de creación)
-# Se limpia automáticamente de archivos más antiguos que MAX_DOWNLOAD_AGE_SECONDS
+# Mapeo en memoria: token -> (ruta de archivo, timestamp de creacion)
+# Se limpia automaticamente de archivos mas antiguos que MAX_DOWNLOAD_AGE_SECONDS
 _DOWNLOADS: Dict[str, Tuple[Path, float]] = {}
 MAX_DOWNLOAD_AGE_SECONDS = 3600  # 1 hora
-MAX_ERRORS_DISPLAY = 25  # Límite de errores mostrados en UI
+MAX_ERRORS_DISPLAY = 25  # Limite de errores mostrados en UI
 
 
 def cleanup_old_downloads(max_age_seconds: int = MAX_DOWNLOAD_AGE_SECONDS) -> int:
     """
-    Elimina archivos de descarga más antiguos que max_age_seconds.
+    Elimina archivos de descarga mas antiguos que max_age_seconds.
     Se ejecuta antes de cada descarga para mantener almacenamiento limpio.
     
     Args:
-        max_age_seconds: Edad máxima en segundos antes de eliminar
+        max_age_seconds: Edad maxima en segundos antes de eliminar
         
     Returns:
-        Número de archivos eliminados
+        Numero de archivos eliminados
     """
     now = time.time()
     expired_tokens = [
@@ -103,7 +101,7 @@ def cleanup_old_downloads(max_age_seconds: int = MAX_DOWNLOAD_AGE_SECONDS) -> in
 
 
 # ============================================================================
-# PLANTILLA HTML - VERSIÓN MEJORADA CON DISEÑO MODERNO
+# PLANTILLA HTML - VERSION MEJORADA CON DISENO MODERNO
 # ============================================================================
 HTML = r"""
 <!doctype html>
@@ -111,8 +109,8 @@ HTML = r"""
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-  <title>Extractor SECOP - Automatización de Procesos</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%232563eb'>📊</text></svg>">
+  <title>Extractor SECOP - Automatizacion de Procesos</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%232563eb'>SECOP</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -410,6 +408,11 @@ HTML = r"""
       animation: slideIn 0.3s ease;
     }
     
+    .status.success {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border-color: var(--success);
+    }
+
     .status.warning {
       background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
       border-color: var(--warning);
@@ -617,10 +620,10 @@ HTML = r"""
   <div class="container">
     <header class="header">
       <div class="logo">
-        <div class="logo-icon">📊</div>
+        <div class="logo-icon">SECOP</div>
         <div class="logo-text">
           <h1>Extractor SECOP</h1>
-          <p class="tagline">Automatización de procesos de contratación</p>
+          <p class="tagline">Automatizacion de procesos de contratacion</p>
         </div>
       </div>
       <div class="version-badge">v{{ version }}</div>
@@ -632,27 +635,27 @@ HTML = r"""
         <div>
           <strong>Estado:</strong>
           {% if result and result.ok_count > 0 and result.fail_count == 0 %}
-            <span class="ok">✓ Finalizado con éxito</span>
+            <span class="ok">OK Finalizado con exito</span>
           {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
-            <span class="warn">⚠️ Finalizado con advertencias</span>
+            <span class="warn">ALERTA Finalizado con advertencias</span>
           {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
-            <span class="err">✗ Falló</span>
+            <span class="err">ERROR Fallo</span>
           {% else %}
-            <span>—</span>
+            <span>-</span>
           {% endif %}
         </div>
         {% if result %}
           <div>
             <strong>Detectadas:</strong>
-            <span class="badge badge-info">📋 {{ result.detected_count }}</span>
+            <span class="badge badge-info">INFO {{ result.detected_count }}</span>
           </div>
           <div>
             <strong>Correctas:</strong>
-            <span class="badge badge-success">✓ {{ result.ok_count }}</span>
+            <span class="badge badge-success">OK {{ result.ok_count }}</span>
           </div>
           <div>
             <strong>Con error:</strong>
-            <span class="badge badge-warning">✗ {{ result.fail_count }}</span>
+            <span class="badge badge-warning">ERROR {{ result.fail_count }}</span>
           </div>
           <div>
             <strong>Salida:</strong>
@@ -663,7 +666,7 @@ HTML = r"""
             <div>
               <strong>Descargar:</strong>
               <a href="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
-                ⬇️ Descargar archivo
+                DESCARGA Descargar archivo
               </a>
             </div>
           {% endif %}
@@ -673,13 +676,13 @@ HTML = r"""
               <div class="error-list small">
                 {% for c, e in result.errors %}
                   <div class="error-item">
-                    <span class="mono">{{ c }}</span> — {{ e }}
+                    <span class="mono">{{ c }}</span> - {{ e }}
                   </div>
                 {% endfor %}
               </div>
               {% if result.has_more_errors %}
                 <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
-                  ⚠️ Mostrando {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa <span class="mono">reporte_errores.csv</span> para la lista completa.
+                  ALERTA Mostrando {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
                 </div>
               {% endif %}
             </div>
@@ -689,15 +692,15 @@ HTML = r"""
 
       <!-- FORMULARIO PRINCIPAL -->
       <form id="form" method="post" action="{{ url_for('extract') }}">
-        <label for="raw">Números de constancia (numConstancia)</label>
+        <label for="raw">Numeros de constancia (numConstancia)</label>
         <textarea 
           id="raw" 
           name="raw" 
-          placeholder="Ingresa constancias (una por línea):
+          placeholder="Ingresa constancias (una por linea):
 25-11-14555665
 25-15-14581710
 
-O pega una tabla completa: el sistema detecta automáticamente"
+O pega una tabla completa: el sistema detecta automaticamente"
         >{{ raw or '' }}</textarea>
 
         <div class="input-hint">
@@ -706,10 +709,10 @@ O pega una tabla completa: el sistema detecta automáticamente"
 
         <div class="row">
           <button id="btnExtract" type="submit">
-            <span id="btnIcon">⚡</span>
+            <span id="btnIcon"></span>
             <span id="btnText">Extraer</span>
           </button>
-          <button id="btnClear" class="btn-secondary" type="button">🗑️ Limpiar</button>
+          <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
         </div>
 
         <!-- PROGRESO (Oculto hasta submit) -->
@@ -717,32 +720,32 @@ O pega una tabla completa: el sistema detecta automáticamente"
           <div class="progress-bar">
             <div class="progress-fill" id="progressFill"></div>
           </div>
-          <p class="progress-text" id="progressText">Iniciando extracción...</p>
+          <p class="progress-text" id="progressText">Iniciando extraccion...</p>
         </div>
 
         <!-- MENSAJES DE PROCESAMIENTO -->
         <div id="runtime" class="hint" style="display:none;">
-          <strong>⏳ Procesando Constancias</strong>
-          • Se abrirá un navegador por cada constancia<br/>
-          • Resuelve manualmente reCAPTCHA si aparece<br/>
-          • La salida se consolida en una hoja <span class="mono">Resultados_Extraccion</span>
+          <strong>PROCESANDO Procesando Constancias</strong>
+          - Se abrira un navegador por cada constancia<br/>
+          - Resuelve manualmente reCAPTCHA si aparece<br/>
+          - La salida se guarda en un unico Excel: <span class="mono">Resultados_Extraccion</span>
         </div>
 
         <!-- INSTRUCCIONES PERMANENTES -->
         <div class="hint">
-          <strong>ℹ️ Instrucciones de Uso</strong>
+          <strong>INFO Instrucciones de Uso</strong>
           <ol>
-            <li>Ingresa constancias (una por línea o tabla completa)</li>
+            <li>Ingresa constancias (una por linea o tabla completa)</li>
             <li>Haz clic en "Extraer" para iniciar el proceso</li>
-            <li>Se abrirá un navegador por cada constancia</li>
-            <li>Si aparece reCAPTCHA, resuélvelo manualmente</li>
-            <li>Recibirás Excel con los resultados consolidados</li>
+            <li>Se abrira un navegador por cada constancia</li>
+            <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
+            <li>Recibiras un unico Excel con los resultados consolidados</li>
           </ol>
         </div>
 
         <div class="footer">
-          <div>📄 Salida: <span class="mono">Resultados_Extraccion</span> (hoja única)</div>
-          <div>🔧 Creado por O.Guerra26</div>
+          <div>SALIDA Salida: <span class="mono">Resultados_Extraccion</span> (Excel unico)</div>
+          <div>AUTOR Creado por O.Guerra26</div>
         </div>
       </form>
     </div>
@@ -750,8 +753,7 @@ O pega una tabla completa: el sistema detecta automáticamente"
 
   <script>
     const CONSTANCIA_RE = /\b(\d{2}-\d{1,2}-\d{4,12})\b/g;
-    const DASHES_UNICODE = "‐‑‒–—―";
-
+    const DASHES_UNICODE = ["\u2013", "\u2014", "\u2212", "\u2010", "\u2011", "\u2012", "\u2043"];
     function normalizeText(s){
       let result = (s || "");
       result = result.replace(/\u00A0/g, " ");
@@ -782,7 +784,7 @@ O pega una tabla completa: el sistema detecta automáticamente"
     function updatePreinfo(){
       const c = detectConstancias();
       if (c.length > 0) {
-        preinfo.textContent = `📋 ${c.length} constancia${c.length !== 1 ? 's' : ''} detectada${c.length !== 1 ? 's' : ''}`;
+        preinfo.textContent = `INFO ${c.length} constancia${c.length !== 1 ? 's' : ''} detectada${c.length !== 1 ? 's' : ''}`;
         preinfo.style.display = "inline-flex";
       } else {
         preinfo.style.display = "none";
@@ -801,7 +803,7 @@ O pega una tabla completa: el sistema detecta automáticamente"
       document.getElementById("progressContainer").style.display = "none";
       const btn = document.getElementById("btnExtract");
       btn.disabled = false;
-      document.getElementById("btnIcon").textContent = "⚡";
+      document.getElementById("btnIcon").textContent = "";
       document.getElementById("btnText").textContent = "Extraer";
       raw.focus();
     });
@@ -812,13 +814,13 @@ O pega una tabla completa: el sistema detecta automáticamente"
       
       if (!raw_val || constancias.length === 0) {
         e.preventDefault();
-        alert("⚠️ Ingresa al menos una constancia válida (formato: YY-XX-NNNN)");
+        alert("ALERTA Ingresa al menos una constancia valida (formato: YY-XX-NNNN)");
         raw.focus();
         return false;
       }
       
       document.getElementById("btnExtract").disabled = true;
-      document.getElementById("btnIcon").innerHTML = '<span class="spinner"></span>';
+      document.getElementById("btnIcon").textContent = "";
       document.getElementById("btnText").textContent = "Procesando...";
       document.getElementById("runtime").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
@@ -844,7 +846,7 @@ O pega una tabla completa: el sistema detecta automáticamente"
 
 @APP.get("/")
 def index():
-    """Página principal con formulario de entrada."""
+    """Pagina principal con formulario de entrada."""
     return render_template_string(
         HTML, 
         raw="", 
@@ -859,26 +861,26 @@ def extract():
     Endpoint de procesamiento de constancias.
     
     Recibe:
-    - POST form field "raw": texto con constancias (una por línea o tabla)
+    - POST form field "raw": texto con constancias (una por linea o tabla)
     
     Retorna:
     - HTML con resultados o lista de errores
     """
     raw = request.form.get("raw", "").strip()
     
-    # Validación: entrada vacía
+    # Validacion: entrada vacia
     if not raw:
         result = {
             "detected_count": 0,
             "ok_count": 0,
             "fail_count": 0,
-            "output_name": "—",
+            "output_name": "-",
             "download_url": None,
             "errors": [],
             "has_more_errors": False,
             "total_errors": 0,
         }
-        logger.warning("POST /extract con entrada vacía")
+        logger.warning("POST /extract con entrada vacia")
         return render_template_string(
             HTML, 
             raw=raw, 
@@ -886,7 +888,7 @@ def extract():
             version=constancia_config.__version__
         )
     
-    # Extracción de constancias
+    # Extraccion de constancias
     constancias = constancia_config.extract_constancias(raw)
     detected_count = len(constancias)
     
@@ -895,13 +897,13 @@ def extract():
             "detected_count": 0,
             "ok_count": 0,
             "fail_count": 0,
-            "output_name": "—",
+            "output_name": "-",
             "download_url": None,
             "errors": [],
             "has_more_errors": False,
             "total_errors": 0,
         }
-        logger.warning(f"No se detectaron constancias válidas en entrada: {raw[:100]}")
+        logger.warning(f"No se detectaron constancias validas en entrada: {raw[:100]}")
         return render_template_string(
             HTML, 
             raw=raw, 
@@ -909,68 +911,28 @@ def extract():
             version=constancia_config.__version__
         )
     
-    logger.info(f"Iniciando extracción de {detected_count} constancia(s)")
-    
-    outputs: List[Path] = []
-    errors: List[Tuple[str, str]] = []
-    
-    # Proceso secuencial (permite interacción manual con reCAPTCHA)
-    for i, c in enumerate(constancias, 1):
-        try:
-            logger.info(f"[{i}/{detected_count}] Extrayendo constancia: {c}")
-            out_file = secop_extract.extract_to_excel(c, OUTPUT_DIR, headless=False)
-            outputs.append(Path(out_file))
-            logger.info(f"[{i}/{detected_count}] ✓ Éxito: {c}")
-        except Exception as e:
-            error_msg = escape(str(e))
-            errors.append((c, error_msg))
-            logger.error(f"[{i}/{detected_count}] ✗ Error extrayendo {c}: {e}")
-    
-    ok_count = len(outputs)
+    logger.info(f"Iniciando extraccion de {detected_count} constancia(s)")
+
+    # Proceso secuencial (permite interaccion manual con reCAPTCHA)
+    final_path, errors = secop_extract.extract_batch_to_excel(
+        constancias,
+        OUTPUT_DIR,
+        headless=False,
+    )
+
+    ok_count = detected_count - len(errors)
     fail_count = len(errors)
-    
-    # Generación de archivo final
+
+    # Generacion de archivo final (siempre un solo XLSX)
+    output_name = final_path.name
     token = secrets.token_urlsafe(16)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
-    if ok_count == 1 and fail_count == 0:
-        # Caso simple: un único XLSX exitoso
-        final_path = outputs[0]
-        output_name = final_path.name
-        logger.info(f"Resultado único: {output_name}")
-    else:
-        # Caso múltiple o con errores: empaquetar en ZIP
-        zip_name = f"Resultados_Extraccion_{timestamp}.zip"
-        final_path = OUTPUT_DIR / zip_name
-        
-        try:
-            with zipfile.ZipFile(final_path, "w", compression=zipfile.ZIP_DEFLATED) as z:
-                # Agregar XLSX exitosos
-                for f in outputs:
-                    z.write(f, arcname=f.name)
-                    logger.debug(f"Agregado a ZIP: {f.name}")
-                
-                # Agregar reporte de errores si hay
-                if errors:
-                    lines = ["numConstancia,error"]
-                    for c, err in errors:
-                        err_clean = err.replace("\n", " ").replace("\r", " ")
-                        lines.append(f'"{c}","{err_clean}"')
-                    csv_content = "\n".join(lines) + "\n"
-                    z.writestr("reporte_errores.csv", csv_content)
-                    logger.info(f"Agregado reporte de errores: {len(errors)} error(es)")
-            
-            output_name = zip_name
-            logger.info(f"ZIP creado: {output_name}")
-        except Exception as e:
-            logger.error(f"Error creando ZIP: {e}")
-            raise
     
     # Registrar descarga disponible con timestamp
     _DOWNLOADS[token] = (final_path, time.time())
     
     # Limitar errores mostrados en UI
-    errors_ui = errors[:MAX_ERRORS_DISPLAY]
+    errors_safe = [(c, escape(str(e))) for c, e in errors]
+    errors_ui = errors_safe[:MAX_ERRORS_DISPLAY]
     has_more_errors = len(errors) > MAX_ERRORS_DISPLAY
     
     result = {
@@ -997,12 +959,12 @@ def download(token: str):
     """
     Descarga segura de archivo generado.
     
-    Parámetros:
-    - token: token aleatorio único asignado en /extract
+    Parametros:
+    - token: token aleatorio unico asignado en /extract
     
     Retorna:
-    - Archivo (XLSX o ZIP) si existe y es válido
-    - Redirección a índice si no existe
+    - Archivo (XLSX o ZIP) si existe y es valido
+    - Redireccion a indice si no existe
     """
     # Limpiar descargas antiguas
     cleaned = cleanup_old_downloads()
@@ -1010,16 +972,28 @@ def download(token: str):
     # Buscar token
     download_info = _DOWNLOADS.get(token)
     if not download_info:
-        logger.warning(f"Intento de descarga con token inválido: {token}")
+        logger.warning(f"Intento de descarga con token invalido: {token}")
         return redirect(url_for("index"))
     
     path, _ = download_info
     
-    # Validación de existencia
+    # Validacion de existencia
     if not path or not path.exists():
         logger.warning(f"Intento de descargar archivo inexistente: {path}")
         return redirect(url_for("index"))
     
+    @after_this_request
+    def _cleanup_download(response):
+        try:
+            if path.exists():
+                path.unlink()
+                logger.info(f"Archivo descargado eliminado: {path.name}")
+        except Exception as e:
+            logger.error(f"Error eliminando archivo descargado {path}: {e}")
+        finally:
+            _DOWNLOADS.pop(token, None)
+        return response
+
     # Descarga segura
     try:
         logger.info(f"Descargando: {path.name}")

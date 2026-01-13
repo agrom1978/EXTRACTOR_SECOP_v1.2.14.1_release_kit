@@ -10,7 +10,7 @@ echo ==========================================
 echo  SECOP - Validador OFFLINE (RP + Rep. Legal)
 echo ==========================================
 
-python -c "import sys; print('Python OK:', sys.version)" >nul 2>&1
+python -c "import sys" >nul 2>&1
 if errorlevel 1 (
   echo ERROR: No se encontro Python en PATH.
   echo Instala Python 3.10+ y vuelve a intentar.
@@ -21,12 +21,13 @@ if errorlevel 1 (
 REM Dependencias minimas
 python -c "import bs4, openpyxl" >nul 2>&1
 if errorlevel 1 (
-  echo Instalando dependencias (beautifulsoup4, openpyxl)...
+  echo Instalando dependencias: beautifulsoup4, openpyxl...
   python -m pip install --upgrade pip
   python -m pip install beautifulsoup4 openpyxl
 )
 
 echo Ejecutando validacion...
+set "PYTHONPATH=%~dp0"
 python validators\validate_offline.py
 
 echo.
