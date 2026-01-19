@@ -1,0 +1,172 @@
+.adquisicionTablaAgregadosFila1 td {
+	background-color: #EFEFEF;
+	color: #000000;
+	border-right: 1px solid #C9C9C9;
+	font-size: 11px;
+}
+
+.adquisicionTablaAgregadosFila2 td {
+	background-color: #FFFFFF;
+	color: #000000;
+	border-right: 1px solid #C9C9C9;
+	font-size: 11px;
+}
+
+.adquisicionTablaResultadosCabezal td {
+	font-family:  "Arial", "Times New Roman";
+	font-size: 12px;
+	background-color: #ffffff;
+	font-weight: bold;
+	color: #FFFFFF;
+	border-top: 0 none;
+	border-right: 1px solid #C9C9C9 !important;
+}
+
+.adquisicionTablaResultadosCabezal td a {
+	color: #FFFFFF;
+}
+
+.adquisicionTablaResultados {
+	border-collapse: collapse;
+}
+
+.adquisicionTablaResultados td {
+	font-size: 11px;
+	padding: 3px 5px;
+	border: 1px solid #C9C9C9;
+	border-style: solid none;
+	vertical-align: top;
+}
+
+.gralSubtitulosAzul {
+	font-size: 14px;
+	font-weight: bold;
+	color: #3d3d3d;
+	margin: 5px 0 0 0;
+}
+
+.gralTitulos {
+	font-family:  "Arial", "Times New Roman";
+	font-size: 15px;
+	font-weight: bold;
+	color: #3d3d3d;
+	border-bottom: 1px solid #8495CA;
+	margin: 5px 0 10px 0;
+}
+
+.gralSubtitulos {
+	font-family:  "Arial", "Times New Roman";
+	font-size: 14px;
+	color: #FF6600;
+	border-bottom: 1px solid #D1D1D1;
+	margin: 10px 0 0 0;
+	vertical-align: middle;
+}
+
+td.formInfo {
+	font-size: 11px;
+	color: #484848;
+	padding-right: 10px;
+	padding-left: 10px;
+	width: 235px;
+}
+
+.tablaAgregadosCabezalColFin {
+	background-color: #12319E;
+	font-weight: bold;
+	color: #FFFFFF;
+	border-top: 0 none;
+	border-right: 0 none;
+	padding-bottom: 2px;
+	font-size: 10px;
+}
+
+.formEjemplos {
+	font-size: 10px;
+	color: #484848;
+	padding-left: 10px;
+	padding-right: 20px;
+}
+
+td.formEjemplos {
+	font-size: 11px;
+	color: #484848;
+	padding-left: 10px;
+	padding-right: 20px;
+}
+
+.formFilas2 td {
+	vertical-align: top;
+	padding-top: 7px;
+	padding-bottom: 7px;
+	border-bottom: 1px solid #C9C9C9;
+	border-top: 1px solid #C9C9C9;
+}
+
+.formTextos {
+	font-size: 11px;
+	font-weight: bold;
+	color: #2152A5; /* width: 170px;*/
+}
+
+td.formEjemplosAntecedentes2 {
+	BORDER-RIGHT: #c9c9c9 1px solid;
+	PADDING-RIGHT: 0px;
+	PADDING-LEFT: 10px;
+	FONT-SIZE: 12px;
+	COLOR: #484848;
+	BACKGROUND-COLOR: #f2f2f2
+}
+
+td.formEjemplosAntecedentes3 {
+	BORDER-RIGHT: #c9c9c9 1px solid;
+	PADDING-RIGHT: 0px;
+	PADDING-LEFT: 10px;
+	FONT-SIZE: 12px;
+	COLOR: #484848;
+	BACKGROUND-COLOR: #f2f2f2
+}
+
+.texto13Azul {
+	font-family:  "Arial", "Times New Roman";
+	font-size: 13px;
+	color: #3d3d3d;
+}
+
+.texto11Azul {
+	font-family:  "Arial", "Times New Roman";
+	font-size: 11px;
+	color: #3d3d3d;
+}
+
+tr.formFilas {
+	background-image: url(consultaFiles/fondo_punteado_filas.gif);
+	background-repeat: repeat-x;
+	background-position: bottom;
+	padding-bottom: 10px;
+	padding-top: 10px
+}
+
+td.formEjemplos2 {
+	font-size: 11px;
+	color: #484848;
+	padding-left: 10px;
+	padding-right: 20px;
+}
+
+.adquisicionCuadroDestacado {
+	background-color: #FFFFCC;
+	padding: 10px;
+	border-bottom: 1px solid #E2E2E2;
+	font-size: 13px;
+	color: #3d3d3d;
+}
+
+/* clase para el captcha */
+.g-recaptcha{
+	margin: 0 auto;
+	width: 300px;
+}
+.g-recaptcha div{
+	margin: 0 auto;
+}

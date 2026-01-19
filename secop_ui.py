@@ -16,11 +16,12 @@ import os
 import secrets
 import logging
 import time
+from datetime import datetime
 from pathlib import Path
-from typing import List, Tuple, Dict
+from typing import Tuple, Dict, Optional
 from html import escape
 
-from flask import Flask, request, send_file, render_template_string, url_for, redirect, after_this_request
+from flask import Flask, request, send_file, render_template_string, url_for, redirect, after_this_request, session
 
 import secop_extract
 import constancia_config
@@ -62,6 +63,10 @@ _DOWNLOADS: Dict[str, Tuple[Path, float]] = {}
 MAX_DOWNLOAD_AGE_SECONDS = 3600  # 1 hora
 MAX_ERRORS_DISPLAY = 25  # Limite de errores mostrados en UI
 
+# Mapeo en memoria: workspace_id -> (ruta de archivo, timestamp, ok_count)
+_WORKSPACES: Dict[str, Tuple[Path, float, int]] = {}
+MAX_WORKSPACE_AGE_SECONDS = 6 * 3600  # 6 horas
+
 
 def cleanup_old_downloads(max_age_seconds: int = MAX_DOWNLOAD_AGE_SECONDS) -> int:
     """
@@ -100,6 +105,59 @@ def cleanup_old_downloads(max_age_seconds: int = MAX_DOWNLOAD_AGE_SECONDS) -> in
     return deleted_count
 
 
+def cleanup_old_workspaces(max_age_seconds: int = MAX_WORKSPACE_AGE_SECONDS) -> int:
+    """
+    Elimina workspaces acumulativos antiguos y sus archivos asociados.
+    """
+    now = time.time()
+    expired = [
+        workspace_id
+        for workspace_id, (path, timestamp, _) in _WORKSPACES.items()
+        if now - timestamp > max_age_seconds
+    ]
+
+    deleted_count = 0
+    for workspace_id in expired:
+        path, _, _ = _WORKSPACES[workspace_id]
+        try:
+            if path.exists():
+                path.unlink()
+                logger.info(f"Workspace expirado eliminado: {path.name}")
+            deleted_count += 1
+        except Exception as e:
+            logger.error(f"Error eliminando workspace {path}: {e}")
+        finally:
+            del _WORKSPACES[workspace_id]
+    return deleted_count
+
+
+def _get_workspace_info() -> Tuple[str, Optional[Path], int]:
+    workspace_id = session.get("workspace_id")
+    if not workspace_id:
+        return "", None, 0
+    info = _WORKSPACES.get(workspace_id)
+    if not info:
+        session.pop("workspace_id", None)
+        return "", None, 0
+    path, _, count = info
+    return workspace_id, path, count
+
+
+def _render_main(raw: str, result: Optional[dict], mode: str, accumulate: bool):
+    _, batch_path, batch_count = _get_workspace_info()
+    return render_template_string(
+        HTML,
+        raw=raw,
+        result=result,
+        mode=mode,
+        version=constancia_config.__version__,
+        accumulate=accumulate,
+        batch_active=bool(batch_path),
+        batch_count=batch_count,
+        batch_name=batch_path.name if batch_path else "-",
+    )
+
+
 # ============================================================================
 # PLANTILLA HTML - VERSION MEJORADA CON DISENO MODERNO
 # ============================================================================
@@ -110,37 +168,49 @@ HTML = r"""
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
   <title>Extractor SECOP - Automatizacion de Procesos</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%232563eb'>SECOP</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%230ea5e9'>SECOP</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   
   <style>
     /* ============== VARIABLES Y TEMAS ============== */
     :root {
-      --primary: #2563eb;
-      --primary-dark: #1d4ed8;
-      --success: #10b981;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --accent-1: #f59e0b;
+      --accent-2: #22c55e;
+      --accent-3: #ea580c;
+      --success: #16a34a;
       --warning: #f59e0b;
-      --danger: #ef4444;
-      --bg: #ffffff;
-      --bg-secondary: #f9fafb;
-      --text: #111827;
-      --text-muted: #6b7280;
-      --border: #e5e7eb;
-      --shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+      --danger: #dc2626;
+      --bg: #f4f7f6;
+      --bg-secondary: #ffffff;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #5b6472;
+      --border: #e3e8ef;
+      --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 22px 40px rgba(15, 23, 42, 0.12);
+      --ring: rgba(15, 118, 110, 0.2);
     }
     
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #111827;
-        --bg-secondary: #1f2937;
-        --text: #f3f4f6;
-        --text-muted: #d1d5db;
-        --border: #374151;
-        --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+        --primary: #14b8a6;
+        --primary-dark: #0f766e;
+        --accent-1: #fbbf24;
+        --accent-2: #4ade80;
+        --accent-3: #fb923c;
+        --bg: #0b1214;
+        --bg-secondary: #11181b;
+        --surface: #0f1720;
+        --text: #e2e8f0;
+        --text-muted: #9aa4b2;
+        --border: #1f2937;
+        --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+        --shadow-lg: 0 18px 36px rgba(0, 0, 0, 0.5);
+        --ring: rgba(20, 184, 166, 0.25);
       }
     }
     
@@ -156,13 +226,45 @@ HTML = r"""
     }
     
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, var(--bg) 0%, var(--bg-secondary) 100%);
+      font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.12), transparent 50%),
+        radial-gradient(circle at 90% 15%, rgba(245, 158, 11, 0.12), transparent 45%),
+        linear-gradient(120deg, rgba(15, 23, 42, 0.03) 0%, rgba(15, 23, 42, 0.0) 60%),
+        repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.03) 0 1px, transparent 1px 48px);
       color: var(--text);
       line-height: 1.6;
-      padding: 20px;
+      padding: 24px;
       min-height: 100vh;
       transition: background 0.3s ease, color 0.3s ease;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      filter: blur(90px);
+      opacity: 0.25;
+      pointer-events: none;
+    }
+
+    body::before {
+      top: -160px;
+      right: -160px;
+      background: radial-gradient(circle, rgba(15, 118, 110, 0.45) 0%, transparent 70%);
+    }
+
+    body::after {
+      bottom: -200px;
+      left: -140px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.4) 0%, transparent 70%);
     }
     
     /* ============== HEADER ============== */
@@ -175,6 +277,8 @@ HTML = r"""
       border-bottom: 2px solid var(--border);
       gap: 16px;
       flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
     }
     
     .logo {
@@ -186,8 +290,16 @@ HTML = r"""
     }
     
     .logo-icon {
-      font-size: 40px;
+      font-size: 12px;
+      letter-spacing: 2px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-1));
+      color: #ffffff;
+      font-weight: 700;
+      text-transform: uppercase;
       animation: float 3s ease-in-out infinite;
+      box-shadow: 0 10px 18px rgba(15, 118, 110, 0.35);
     }
     
     @keyframes float {
@@ -196,10 +308,11 @@ HTML = r"""
     }
     
     .logo-text h1 {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 700;
       margin: 0;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      font-family: 'Space Grotesk', 'IBM Plex Sans', sans-serif;
+      background: linear-gradient(120deg, var(--primary) 0%, var(--accent-1) 80%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -213,26 +326,28 @@ HTML = r"""
     }
     
     .version-badge {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: linear-gradient(135deg, var(--accent-3), var(--primary));
       color: white;
       padding: 8px 14px;
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
       white-space: nowrap;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      box-shadow: 0 8px 18px rgba(234, 88, 12, 0.35);
     }
     
     /* ============== CONTENEDOR PRINCIPAL ============== */
     .container {
-      max-width: 800px;
+      max-width: 940px;
       margin: 0 auto;
+      position: relative;
+      z-index: 1;
     }
     
     .card {
-      background: var(--bg);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
+      border-radius: 20px;
       padding: 32px;
       box-shadow: var(--shadow);
       transition: all 0.3s ease;
@@ -258,7 +373,7 @@ HTML = r"""
       padding: 14px;
       border: 2px solid var(--border);
       border-radius: 10px;
-      font-family: 'Fira Code', 'Courier New', monospace;
+      font-family: 'IBM Plex Mono', 'Courier New', monospace;
       font-size: 14px;
       background: var(--bg-secondary);
       color: var(--text);
@@ -269,7 +384,7 @@ HTML = r"""
     textarea:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px var(--ring);
       background: var(--bg);
     }
     
@@ -295,6 +410,7 @@ HTML = r"""
       border-radius: 20px;
       font-size: 12px;
       font-weight: 600;
+      border: 1px solid transparent;
       animation: slideIn 0.3s ease;
     }
     
@@ -310,18 +426,27 @@ HTML = r"""
     }
     
     .badge-info {
-      background: rgba(37, 99, 235, 0.1);
-      color: var(--primary);
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--primary-dark);
+      border-color: rgba(15, 118, 110, 0.25);
     }
     
     .badge-success {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(22, 163, 74, 0.12);
       color: var(--success);
+      border-color: rgba(22, 163, 74, 0.25);
     }
     
     .badge-warning {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--warning);
+      background: rgba(245, 158, 11, 0.14);
+      color: #b45309;
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-danger {
+      background: rgba(220, 38, 38, 0.12);
+      color: var(--danger);
+      border-color: rgba(220, 38, 38, 0.28);
     }
     
     /* ============== BOTONES ============== */
@@ -348,16 +473,16 @@ HTML = r"""
     }
     
     #btnExtract {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      background: linear-gradient(135deg, var(--primary), var(--accent-1));
       color: white;
-      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
       flex: 1;
       min-width: 120px;
     }
     
     #btnExtract:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 14px 28px rgba(15, 118, 110, 0.4);
     }
     
     #btnExtract:active:not(:disabled) {
@@ -365,13 +490,12 @@ HTML = r"""
     }
     
     .btn-secondary {
-      background: var(--border);
+      background: transparent;
       color: var(--text);
       border: 2px solid var(--border);
     }
     
     .btn-secondary:hover:not(:disabled) {
-      background: transparent;
       border-color: var(--primary);
       color: var(--primary);
     }
@@ -396,50 +520,137 @@ HTML = r"""
       to { transform: rotate(360deg); }
     }
     
-    /* ============== PANEL DE ESTADO ============== */
+    /* ============== PANEL DE RESULTADOS ============== */
     .status {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-      border: 2px solid var(--success);
-      border-radius: 12px;
-      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
       margin-top: 24px;
       display: grid;
-      gap: 12px;
-      animation: slideIn 0.3s ease;
+      gap: 18px;
+      animation: fadeUp 0.35s ease;
+      background: linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.05));
     }
-    
+
     .status.success {
-      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
-      border-color: var(--success);
+      border-color: rgba(22, 163, 74, 0.45);
     }
 
     .status.warning {
-      background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
-      border-color: var(--warning);
+      border-color: rgba(245, 158, 11, 0.5);
     }
-    
+
     .status.error {
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-      border-color: var(--danger);
+      border-color: rgba(220, 38, 38, 0.5);
     }
-    
-    .status div {
+
+    .results-head {
       display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
     }
-    
-    .status strong {
+
+    .results-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
       font-weight: 600;
-      min-width: 100px;
+      margin-bottom: 6px;
+    }
+
+    .results-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .status-pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      background: rgba(15, 118, 110, 0.16);
+      color: var(--primary-dark);
+    }
+
+    .status.warning .status-pill {
+      background: rgba(245, 158, 11, 0.18);
+      color: #a16207;
+    }
+
+    .status.error .status-pill {
+      background: rgba(220, 38, 38, 0.18);
+      color: #991b1b;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .download-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(15, 23, 42, 0.12);
+    }
+
+    .batch-panel {
+      margin-top: 18px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px dashed rgba(15, 23, 42, 0.12);
+      background: var(--bg-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .batch-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
     /* ============== TEXTO ============== */
     .mono {
-      font-family: 'Fira Code', monospace;
+      font-family: 'IBM Plex Mono', monospace;
       font-weight: 600;
-      background: rgba(0, 0, 0, 0.05);
+      background: rgba(15, 23, 42, 0.08);
       padding: 2px 6px;
       border-radius: 3px;
     }
@@ -471,10 +682,10 @@ HTML = r"""
     /* ============== HINT Y INSTRUCCIONES ============== */
     .hint {
       margin-top: 16px;
-      padding: 16px;
-      background: rgba(37, 99, 235, 0.05);
-      border-left: 4px solid var(--primary);
-      border-radius: 8px;
+      padding: 18px;
+      background: linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(255, 255, 255, 0.6));
+      border: 1px solid rgba(15, 118, 110, 0.2);
+      border-radius: 12px;
       color: var(--text);
       font-size: 13px;
       line-height: 1.6;
@@ -510,10 +721,10 @@ HTML = r"""
     
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+      background: linear-gradient(90deg, var(--primary), var(--accent-2));
       width: 0%;
       transition: width 0.3s ease;
-      box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
     }
     
     .progress-text {
@@ -536,8 +747,8 @@ HTML = r"""
     .error-item {
       padding: 10px 12px;
       margin: 8px 0;
-      background: rgba(239, 68, 68, 0.05);
-      border-left: 4px solid var(--danger);
+      background: rgba(244, 63, 94, 0.06);
+      border-left: 4px solid var(--accent-3);
       border-radius: 4px;
       font-size: 13px;
       line-height: 1.5;
@@ -632,47 +843,52 @@ HTML = r"""
     <div class="card">
       <!-- PANEL DE RESULTADOS -->
       <div class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
-        <div>
-          <strong>Estado:</strong>
-          {% if result and result.ok_count > 0 and result.fail_count == 0 %}
-            <span class="ok">OK Finalizado con exito</span>
-          {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
-            <span class="warn">ALERTA Finalizado con advertencias</span>
-          {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
-            <span class="err">ERROR Fallo</span>
-          {% else %}
-            <span>-</span>
-          {% endif %}
+        <div class="results-head">
+          <div>
+            <div class="results-title">Resultados de extraccion</div>
+            <div class="results-subtitle">Resumen del lote procesado en SECOP</div>
+          </div>
+          <div class="status-pill">
+            {% if result and result.ok_count > 0 and result.fail_count == 0 %}
+              Completado sin errores
+            {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
+              Completado con advertencias
+            {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
+              No se pudo completar
+            {% else %}
+              Sin ejecucion
+            {% endif %}
+          </div>
         </div>
         {% if result %}
-          <div>
-            <strong>Detectadas:</strong>
-            <span class="badge badge-info">INFO {{ result.detected_count }}</span>
-          </div>
-          <div>
-            <strong>Correctas:</strong>
-            <span class="badge badge-success">OK {{ result.ok_count }}</span>
-          </div>
-          <div>
-            <strong>Con error:</strong>
-            <span class="badge badge-warning">ERROR {{ result.fail_count }}</span>
-          </div>
-          <div>
-            <strong>Salida:</strong>
-            <span class="mono">{{ result.output_name }}</span>
-          </div>
-          <hr style="margin: 12px 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);">
-          {% if result.download_url %}
-            <div>
-              <strong>Descargar:</strong>
-              <a href="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
-                DESCARGA Descargar archivo
-              </a>
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-label">Constancias detectadas</div>
+              <div class="stat-value">{{ result.detected_count }}</div>
             </div>
-          {% endif %}
+            <div class="stat-card">
+              <div class="stat-label">Procesadas con exito</div>
+              <div class="stat-value">{{ result.ok_count }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Con errores</div>
+              <div class="stat-value">{{ result.fail_count }}</div>
+            </div>
+          </div>
+          <div class="download-row">
+            <div>
+              <strong>Archivo generado:</strong>
+              <span class="mono">{{ result.output_name }}</span>
+            </div>
+            {% if result.download_url %}
+              <a href="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
+                Descargar Excel
+              </a>
+            {% endif %}
+          </div>
           {% if result.fail_count > 0 %}
-            <div style="margin-top: 12px;">
-              <strong class="small">Errores ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
+            <div style="margin-top: 6px;">
+              <strong class="small">Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
               <div class="error-list small">
                 {% for c, e in result.errors %}
                   <div class="error-item">
@@ -682,7 +898,7 @@ HTML = r"""
               </div>
               {% if result.has_more_errors %}
                 <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
-                  ALERTA Mostrando {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
+                  Se muestran {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
                 </div>
               {% endif %}
             </div>
@@ -692,7 +908,7 @@ HTML = r"""
 
       <!-- FORMULARIO PRINCIPAL -->
       <form id="form" method="post" action="{{ url_for('extract') }}">
-        <label for="raw">Numeros de constancia (numConstancia)</label>
+        <label for="raw">Constancias a procesar</label>
         <textarea 
           id="raw" 
           name="raw" 
@@ -705,6 +921,21 @@ O pega una tabla completa: el sistema detecta automaticamente"
 
         <div class="input-hint">
           <span id="preinfo" class="badge badge-info" style="display: none;"></span>
+        </div>
+
+        <div class="row" style="margin-top: 12px;">
+          <label for="mode" style="margin: 0;">Modo de extraccion</label>
+          <select id="mode" name="mode" style="padding: 8px 10px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text); font-weight: 600;">
+            <option value="normal" {% if mode == "normal" %}selected{% endif %}>Normal (mas rapido)</option>
+            <option value="seguro" {% if mode == "seguro" %}selected{% endif %}>Seguro (anti-bloqueo)</option>
+          </select>
+        </div>
+
+        <div class="row" style="margin-top: 10px;">
+          <label style="margin: 0; display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="accumulate" name="accumulate" value="1" {% if accumulate %}checked{% endif %} />
+            Acumular en un solo Excel (descarga manual)
+          </label>
         </div>
 
         <div class="row">
@@ -725,7 +956,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
 
         <!-- MENSAJES DE PROCESAMIENTO -->
         <div id="runtime" class="hint" style="display:none;">
-          <strong>PROCESANDO Procesando Constancias</strong>
+          <strong>Procesando constancias</strong>
           - Se abrira un navegador por cada constancia<br/>
           - Resuelve manualmente reCAPTCHA si aparece<br/>
           - La salida se guarda en un unico Excel: <span class="mono">Resultados_Extraccion</span>
@@ -733,21 +964,40 @@ O pega una tabla completa: el sistema detecta automaticamente"
 
         <!-- INSTRUCCIONES PERMANENTES -->
         <div class="hint">
-          <strong>INFO Instrucciones de Uso</strong>
+          <strong>Guia rapida</strong>
           <ol>
             <li>Ingresa constancias (una por linea o tabla completa)</li>
             <li>Haz clic en "Extraer" para iniciar el proceso</li>
             <li>Se abrira un navegador por cada constancia</li>
             <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
             <li>Recibiras un unico Excel con los resultados consolidados</li>
+            <li>Si activas acumulacion, descarga el Excel cuando presiones "Descargar lote"</li>
           </ol>
         </div>
 
         <div class="footer">
-          <div>SALIDA Salida: <span class="mono">Resultados_Extraccion</span> (Excel unico)</div>
-          <div>AUTOR Creado por O.Guerra26</div>
+          <div>Salida: <span class="mono">Resultados_Extraccion</span> (Excel unico)</div>
+          <div>Creado por O.Guerra26</div>
         </div>
       </form>
+
+      {% if batch_active %}
+        <div class="batch-panel">
+          <div>
+            <strong>Lote activo:</strong>
+            <span class="mono">{{ batch_name }}</span>
+            <span class="small muted" style="margin-left: 8px;">{{ batch_count }} registros acumulados</span>
+          </div>
+          <div class="batch-actions">
+            <form method="post" action="{{ url_for('finalize') }}">
+              <button id="btnFinalize" type="submit">Descargar lote</button>
+            </form>
+            <form method="post" action="{{ url_for('reset_batch') }}">
+              <button class="btn-secondary" type="submit">Reiniciar lote</button>
+            </form>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -784,7 +1034,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
     function updatePreinfo(){
       const c = detectConstancias();
       if (c.length > 0) {
-        preinfo.textContent = `INFO ${c.length} constancia${c.length !== 1 ? 's' : ''} detectada${c.length !== 1 ? 's' : ''}`;
+        preinfo.textContent = `Detectadas: ${c.length} constancia${c.length !== 1 ? 's' : ''}`;
         preinfo.style.display = "inline-flex";
       } else {
         preinfo.style.display = "none";
@@ -814,7 +1064,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       
       if (!raw_val || constancias.length === 0) {
         e.preventDefault();
-        alert("ALERTA Ingresa al menos una constancia valida (formato: YY-XX-NNNN)");
+        alert("Ingresa al menos una constancia valida (formato: YY-XX-NNNN)");
         raw.focus();
         return false;
       }
@@ -847,12 +1097,9 @@ O pega una tabla completa: el sistema detecta automaticamente"
 @APP.get("/")
 def index():
     """Pagina principal con formulario de entrada."""
-    return render_template_string(
-        HTML, 
-        raw="", 
-        result=None,
-        version=constancia_config.__version__
-    )
+    cleanup_old_downloads()
+    cleanup_old_workspaces()
+    return _render_main(raw="", result=None, mode="normal", accumulate=False)
 
 
 @APP.post("/extract")
@@ -867,6 +1114,9 @@ def extract():
     - HTML con resultados o lista de errores
     """
     raw = request.form.get("raw", "").strip()
+    mode = request.form.get("mode", "normal").strip().lower()
+    accumulate = request.form.get("accumulate", "").strip() == "1"
+    cleanup_old_workspaces()
     
     # Validacion: entrada vacia
     if not raw:
@@ -881,12 +1131,7 @@ def extract():
             "total_errors": 0,
         }
         logger.warning("POST /extract con entrada vacia")
-        return render_template_string(
-            HTML, 
-            raw=raw, 
-            result=result,
-            version=constancia_config.__version__
-        )
+        return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate)
     
     # Extraccion de constancias
     constancias = constancia_config.extract_constancias(raw)
@@ -904,31 +1149,59 @@ def extract():
             "total_errors": 0,
         }
         logger.warning(f"No se detectaron constancias validas en entrada: {raw[:100]}")
-        return render_template_string(
-            HTML, 
-            raw=raw, 
-            result=result,
-            version=constancia_config.__version__
-        )
+        return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate)
     
     logger.info(f"Iniciando extraccion de {detected_count} constancia(s)")
 
     # Proceso secuencial (permite interaccion manual con reCAPTCHA)
-    final_path, errors = secop_extract.extract_batch_to_excel(
-        constancias,
-        OUTPUT_DIR,
-        headless=False,
-    )
+    if mode == "seguro":
+        delay_seconds = 30.0
+        backoff_max_seconds = 600.0
+    else:
+        delay_seconds = 10.0
+        backoff_max_seconds = 120.0
 
-    ok_count = detected_count - len(errors)
+    if accumulate:
+        workspace_id, batch_path, batch_count = _get_workspace_info()
+        if not workspace_id or not batch_path:
+            workspace_id = secrets.token_urlsafe(10)
+            batch_name = f"Resultados_Extraccion_lote_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{workspace_id}.xlsx"
+            batch_path = OUTPUT_DIR / batch_name
+            _WORKSPACES[workspace_id] = (batch_path, time.time(), 0)
+            session["workspace_id"] = workspace_id
+            batch_count = 0
+
+        final_path, errors, ok_added = secop_extract.append_batch_to_excel(
+            constancias,
+            batch_path,
+            headless=False,
+            delay_seconds=delay_seconds,
+            backoff_max_seconds=backoff_max_seconds,
+        )
+        batch_count = batch_count + ok_added
+        _WORKSPACES[workspace_id] = (final_path, time.time(), batch_count)
+        download_url = None
+    else:
+        final_path, errors = secop_extract.extract_batch_to_excel(
+            constancias,
+            OUTPUT_DIR,
+            headless=False,
+            delay_seconds=delay_seconds,
+            backoff_max_seconds=backoff_max_seconds,
+        )
+        download_url = None
+
+    if accumulate:
+        ok_count = ok_added
+    else:
+        ok_count = detected_count - len(errors)
     fail_count = len(errors)
 
-    # Generacion de archivo final (siempre un solo XLSX)
     output_name = final_path.name
-    token = secrets.token_urlsafe(16)
-    
-    # Registrar descarga disponible con timestamp
-    _DOWNLOADS[token] = (final_path, time.time())
+    if not accumulate:
+        token = secrets.token_urlsafe(16)
+        _DOWNLOADS[token] = (final_path, time.time())
+        download_url = url_for("download", token=token)
     
     # Limitar errores mostrados en UI
     errors_safe = [(c, escape(str(e))) for c, e in errors]
@@ -940,18 +1213,62 @@ def extract():
         "ok_count": ok_count,
         "fail_count": fail_count,
         "output_name": output_name,
-        "download_url": url_for("download", token=token),
+        "download_url": download_url,
         "errors": errors_ui,
         "has_more_errors": has_more_errors,
         "total_errors": len(errors),
     }
     
-    return render_template_string(
-        HTML, 
-        raw=raw, 
-        result=result,
-        version=constancia_config.__version__
-    )
+    return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate)
+
+
+@APP.post("/finalize")
+def finalize():
+    """
+    Cierra el lote acumulativo actual y habilita descarga.
+    """
+    cleanup_old_downloads()
+    cleanup_old_workspaces()
+
+    workspace_id, batch_path, batch_count = _get_workspace_info()
+    if not workspace_id or not batch_path or not batch_path.exists():
+        return redirect(url_for("index"))
+
+    token = secrets.token_urlsafe(16)
+    _DOWNLOADS[token] = (batch_path, time.time())
+    _WORKSPACES.pop(workspace_id, None)
+    session.pop("workspace_id", None)
+
+    result = {
+        "detected_count": batch_count,
+        "ok_count": batch_count,
+        "fail_count": 0,
+        "output_name": batch_path.name,
+        "download_url": url_for("download", token=token),
+        "errors": [],
+        "has_more_errors": False,
+        "total_errors": 0,
+    }
+
+    return _render_main(raw="", result=result, mode="normal", accumulate=False)
+
+
+@APP.post("/reset_batch")
+def reset_batch():
+    """
+    Reinicia el lote acumulativo actual y elimina su archivo.
+    """
+    workspace_id, batch_path, _ = _get_workspace_info()
+    if batch_path and batch_path.exists():
+        try:
+            batch_path.unlink()
+            logger.info(f"Lote reiniciado eliminado: {batch_path.name}")
+        except Exception as e:
+            logger.error(f"Error eliminando lote {batch_path}: {e}")
+    if workspace_id:
+        _WORKSPACES.pop(workspace_id, None)
+    session.pop("workspace_id", None)
+    return redirect(url_for("index"))
 
 
 @APP.get("/download/<token>")
@@ -967,7 +1284,7 @@ def download(token: str):
     - Redireccion a indice si no existe
     """
     # Limpiar descargas antiguas
-    cleaned = cleanup_old_downloads()
+    cleanup_old_downloads()
     
     # Buscar token
     download_info = _DOWNLOADS.get(token)

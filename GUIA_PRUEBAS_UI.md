@@ -1,4 +1,4 @@
-# 🎯 Guía de Pruebas - Mejoras UI v1.2.14.1
+# 🎯 Guía de Pruebas - Mejoras UI v1.2.15
 
 **Fecha de implementación:** 11 de enero de 2025  
 **Estado:** ✅ Completado y sincronizado con GitHub
@@ -235,7 +235,7 @@ Cmd+Option+U → Responsive Design Mode
 - 📊 Logo animado (flotante)
 - **Extractor SECOP** (título gradiente azul)
 - *Automatización de procesos de contratación* (tagline)
-- **v1.2.14.1** (version badge con gradiente)
+- **v1.2.15** (version badge con gradiente)
 
 **Responsividad:**
 - Desktop: Horizontal (logo + titulo + version en fila)
@@ -386,6 +386,6 @@ Si encuentras problemas:
 
 ---
 
-**Versión:** 1.2.14.1  
+**Versión:** 1.2.15  
 **Fecha:** 11 de enero de 2025  
 **Estado:** ✅ Listo para producción

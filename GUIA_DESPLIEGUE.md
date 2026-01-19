@@ -1,7 +1,7 @@
-# GUÍA DE DESPLIEGUE: secop_ui.py v1.2.14.1
+# GUÍA DE DESPLIEGUE: secop_ui.py v1.2.15
 
 **Fecha:** 11 de enero de 2026  
-**Versión:** 1.2.14.1  
+**Versión:** 1.2.15  
 **Estado:** ✅ Listo para Producción
 
 ---
@@ -36,7 +36,7 @@ python test_cambios.py
 
 ```bash
 # 1. Ubicarse en directorio del proyecto
-cd "C:\Users\USUARIO\OneDrive\Escritorio\EXTRACTOR_SECOP_v1.2.14.1_release_kit"
+cd "C:\Users\USUARIO\OneDrive\Escritorio\EXTRACTOR_SECOP_v1.2.15_release_kit"
 
 # 2. Configurar variable de entorno (seguridad)
 set SECOP_UI_SECRET=tu-clave-super-segura-aqui
@@ -104,7 +104,7 @@ gunicorn==21.0.0
 EOF
 
 # 3. Construir imagen
-docker build -t secop-ui:1.2.14.1 .
+docker build -t secop-ui:1.2.15 .
 
 # 4. Ejecutar contenedor
 docker run -d \
@@ -112,7 +112,7 @@ docker run -d \
   -p 5000:5000 \
   -e SECOP_UI_SECRET="clave-segura" \
   -v /var/secop/exports:/app/exports \
-  secop-ui:1.2.14.1
+  secop-ui:1.2.15
 ```
 
 ---
@@ -199,7 +199,7 @@ sudo systemctl reload nginx
 
 ### Opción 1: Archivo Backup
 ```bash
-cd "c:\Users\USUARIO\OneDrive\Escritorio\EXTRACTOR_SECOP_v1.2.14.1_release_kit"
+cd "c:\Users\USUARIO\OneDrive\Escritorio\EXTRACTOR_SECOP_v1.2.15_release_kit"
 
 # Revertir a versión anterior
 copy secop_ui_backup.py secop_ui.py

@@ -1,8 +1,32 @@
 # 📑 ÍNDICE DE CAMBIOS IMPLEMENTADOS
+## v1.2.15 - Ajustes anti-bloqueo y mejoras de extraccion
+
+**Fecha:** 2026-01-18  
+**Estado:** COMPLETADO  
+**Cambios clave:**  
+- Normalizacion de "Tipo de Gasto" para soportar "Inversion" con tilde.  
+- Reuso de sesion Playwright en lotes para reducir senales de automatizacion.  
+- Throttling y backoff con jitter; warm-up antes del primer request en lotes > 2.  
+- Deteccion de bloqueo anti-DDoS y detencion temprana del lote.  
+- Selector UI "Modo normal/seguro" con parametros de delay/backoff.  
+
+---
+
+## secop_extract.py v1.2.14.2 - Ajustes de extraccion de "Tipo de Proceso"
+
+**Fecha:** 2026-01-15  
+**Estado:** COMPLETADO  
+**Cambios clave:**  
+- "Tipo de Proceso" se toma de "Tipo de Gasto" (sin heuristicas por BPIM/RP).  
+- Plantilla actualizada para encabezado "Tipo de Proceso".  
+
+---
+
 ## secop_ui.py v1.2.14.1 - Refactorización Completa
 
 **Fecha:** 11 de enero de 2026  
-**Estado:** ✅ COMPLETADO Y VALIDADO  
+**Estado:** �
+ COMPLETADO Y VALIDADO  
 **Documentos Generados:** 7
 
 ---
@@ -41,23 +65,31 @@
 ### Distribución por Severidad
 
 ```
-🔴 CRÍTICAS (3/3)      ████████ 100% ✅
+🔴 CRÍTICAS (3/3)      ████████ 100% �
+
   ├─ Regex desincronizado
   ├─ Dashes Unicode sin sync
   └─ Memory leak _DOWNLOADS
 
-🟡 ALTAS (4/4)         ████████ 100% ✅
+🟡 ALTAS (4/4)         ████████ 100% �
+
   ├─ Sin validación entrada vacía
   ├─ Sin try/except en /download
   ├─ Versión desactualizada
   └─ Errores truncados sin aviso
 
-🟢 MENORES (6/7)       ██████░░  86% ✅
-  ├─ Sin logging ✅
-  ├─ Secret key débil ✅
-  ├─ Sin sanitización ✅
-  ├─ Instrucciones duplicadas ✅
-  ├─ Timestamp no sincronizado ✅
+🟢 MENORES (6/7)       ██████░░  86% �
+
+  ├─ Sin logging �
+
+  ├─ Secret key débil �
+
+  ├─ Sin sanitización �
+
+  ├─ Instrucciones duplicadas �
+
+  ├─ Timestamp no sincronizado �
+
   └─ Content-Type validation ❌ (no crítico)
 ```
 
@@ -98,7 +130,7 @@
 │  ├─ DASHES_UNICODE (6 caracteres Unicode)
 │  ├─ CONSTANCIA_RE (validación: 4-12 dígitos)
 │  ├─ CONSTANCIA_DETECTION_RE (detección con word boundaries)
-│  └─ __version__ (1.2.14.1)
+│  └─ __version__ (1.2.15)
 ├─ Funciones
 │  ├─ normalize_text() → Convierte Unicode/nbsp a ASCII
 │  ├─ normalize_constancia() → Normaliza constancia individual
@@ -176,7 +208,8 @@ TOTAL           14             13         93%
 
 ---
 
-## ✅ VALIDACIÓN
+## �
+ VALIDACIÓN
 
 ### Tests Automatizados (8/8 pasados)
 ```
@@ -189,7 +222,8 @@ TOTAL           14             13         93%
 ✓ Test 7: Integración secop_ui ↔ constancia_config
 ✓ Test 8: Sincronización regex JavaScript-Python
 
-RESULTADO: ✅ TODOS LOS TESTS PASARON
+RESULTADO: �
+ TODOS LOS TESTS PASARON
 ```
 
 Ejecutar: `python test_cambios.py`
@@ -200,12 +234,18 @@ Ejecutar: `python test_cambios.py`
 
 | Aspecto | Estado | Notas |
 |---------|--------|-------|
-| **Código** | ✅ Listo | Validado, compilado, sin warnings |
-| **Documentación** | ✅ Completa | 7 documentos generados |
-| **Validación** | ✅ Aprobada | 8/8 tests pasando |
-| **Seguridad** | ✅ Mejorada | Logging, validaciones, sanitización |
-| **Compatibilidad** | ✅ Regresiva | Sin cambios a templates Excel |
-| **Rollback** | ✅ Disponible | secop_ui_backup.py presente |
+| **Código** | �
+ Listo | Validado, compilado, sin warnings |
+| **Documentación** | �
+ Completa | 7 documentos generados |
+| **Validación** | �
+ Aprobada | 8/8 tests pasando |
+| **Seguridad** | �
+ Mejorada | Logging, validaciones, sanitización |
+| **Compatibilidad** | �
+ Regresiva | Sin cambios a templates Excel |
+| **Rollback** | �
+ Disponible | secop_ui_backup.py presente |
 
 ---
 
@@ -276,11 +316,16 @@ copy secop_ui_backup.py secop_ui.py
 
 ## 🏆 CONCLUSIÓN
 
-✅ **Refactorización exitosa y completa**  
-✅ **10/15 problemas críticos resueltos (93% cobertura)**  
-✅ **Código listo para producción**  
-✅ **Documentación exhaustiva**  
-✅ **Suite de validación automatizada**  
+�
+ **Refactorización exitosa y completa**  
+�
+ **10/15 problemas críticos resueltos (93% cobertura)**  
+�
+ **Código listo para producción**  
+�
+ **Documentación exhaustiva**  
+�
+ **Suite de validación automatizada**  
 
 🎉 **Proyecto en estado óptimo para despliegue**
 

@@ -1,0 +1,84 @@
+// JavaScript Document
+ function doSelect(lovWindow, event)
+ {
+     var value = lovWindow.userName;
+     if (value!=(void 0)){
+        document.UserInfo.manager.value = lovWindow.userName;
+        document.UserInfo.managerGuid.value = lovWindow.userGuid;
+     }
+ }
+ function refreshExtPrefs(lovWindow, event)
+ {
+       submitForm('UserInfo', true, {event:'resfreshResouceTable'});  
+ }
+ function clearBrowseField(clearAttrname)
+ {
+       document.UserInfo[clearAttrname].value = "true";
+       submitForm('UserInfo', true, {event:'clearBrowseField'});  
+ }
+ function myCallBack4User(lovWindow, event)
+ {     var value = lovWindow.userName;
+        if (value != (void 0))
+        {
+        document.UserInfo[top.myData].value = lovWindow.nickName;
+        document.UserInfo[top.myDataDN].value = lovWindow.userDn;
+        document.UserInfo[top.myDataShown].value = lovWindow.nickName;
+        }
+ }
+function myCallBack4Group(lovWindow, event)
+ {     var value = lovWindow.groupName;
+        if (value != (void 0))
+        {
+        document.UserInfo[top.myData].value = lovWindow.groupDisplay;
+        document.UserInfo[top.myDataDN].value = lovWindow.groupDn;
+        document.UserInfo[top.myDataShown].value = lovWindow.groupDisplay;
+        }
+ } 
+ function tableLov4User(lovName, lovNameDN, lovNameShown)
+ {
+     top.myData = lovName;
+     top.myDataDN = lovNameDN;
+     top.myDataShown = lovNameShown;
+     openWindow(top,
+                'http://www.contratos.gov.co',
+                'lovWindow',
+                {width:800,height:600},
+                true,
+                'dialog',
+                myCallBack4User);
+     return false;
+ }
+ function tableLov4Group(lovName, lovNameDN, lovNameShown)
+ {
+     top.myData = lovName;
+     top.myDataDN = lovNameDN;
+     top.myDataShown = lovNameShown;
+     openWindow(top,
+                'http://www.contratos.gov.co',
+                'lovWindow',
+                {width:800,height:600},
+                true,
+                'dialog',
+                myCallBack4Group);
+     return false;
+ }
+
+
+ function abrirAdministracionDocs(lovName, lovNameDN, lovNameShown, url)
+ {
+     top.myData = lovName;
+     top.myDataDN = lovNameDN;
+     top.myDataShown = lovNameShown;
+		 //alert(url);
+     openWindow(top,
+                url,
+                'lovWindow',
+                {width:1020,height:700},
+                true,
+                'dialog',
+                myCallBack4Group);
+     return false;
+ }
+
+
+

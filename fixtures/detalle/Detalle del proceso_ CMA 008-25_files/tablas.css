@@ -1,0 +1,124 @@
+.tttablas {
+	text-transform: none;
+	BACKGROUND-COLOR: #d8d8d8;
+	COLOR: #3d3d3d;
+	font-family: "Arial", "Times New Roman";
+	font-size: 12px;
+	TEXT-DECORATION: none;
+	padding: 5px;
+}
+
+.tablaslistNormal,.tablaslistOdd,.tablaslistEven,.tablaslistOdd select,.tablaslistEven select,.tablaslistOdd input,.tablaslistEven input,.tablaslistOdd textarea,.tablaslistEven textarea
+	{
+	COLOR: #3d3d3d;
+	text-transform: none;
+	font-family: "Arial", "Times New Roman";
+	font-size: 11px;
+	FONT-WEIGHT: normal;
+	TEXT-DECORATION: none;
+	padding: 3px;
+}
+
+.tablaslistNormal
+	{
+	border-bottom: thin solid #CCC;
+}
+
+.tablaslistOdd {
+	BACKGROUND-COLOR: #fff;
+}
+
+.tablaslistEven {
+	BACKGROUND-COLOR: #fbfbfb;
+}
+
+.tablaslistOdd a:visited,.tablaslistEven a:visited {
+	font-family: "Arial", "Times New Roman";
+	font-size: 11px;
+	font-weight: normal;
+	color: #81959f;
+	text-decoration: none;
+}
+
+.tablasInter1 {
+	BACKGROUND-COLOR: #f0f0f0;
+	COLOR: #3d3d3d;
+	font-family:"Arial", "Times New Roman";
+	font-size: 12px;
+	TEXT-DECORATION: none;
+}
+
+.texto12azulbold { font-family: "Arial", "Times New Roman"; font-size: 12px;  color:#3d3d3d}
+
+
+
+/* cambios - Diego */
+.tablaConsultaEB,.tablaConsultaEB tbody{
+	/*width : 950px !important;*/
+}
+
+.tablaConsultaEB {
+	width : 960px !important;
+	/*display: table;*/
+}
+
+.tablaConsultaEB .tablaslistEven{
+	font-size: 12px;
+}
+
+.tablaConsultaEB td{
+	border: 1px solid grey;
+	/*width : 150px !important;*/
+	/*display: table-cell;*/
+	/* These are technically the same, but use both */
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  -ms-word-break: break-all;
+  /* This is the dangerous one in WebKit, as it breaks things wherever */
+  word-break: break-all;
+  /* Instead use this non-standard one: */
+  word-break: break-word;
+
+  /* Adds a hyphen where the word breaks, if supported (No Blink) */
+  -ms-hyphens: auto;
+  -moz-hyphens: auto;
+  -webkit-hyphens: auto;
+  hyphens: auto;
+
+}
+
+.tablaConsultaEB .td50{
+	width : 50px !important;
+}
+
+.tablaConsultaEB .td100{
+	width : 100px !important;
+}
+
+.tablaConsultaEB .td150{
+	width : 150px !important;
+}
+
+.tablaConsultaEB .td200{
+	width : 200px !important;
+}
+
+
+.tablaConsultaEB .td250{
+	width : 250px !important;
+}
+
+
+
+.tablaConsultaEB .tablaslistEven {  
+    font-weight: bold;
+}
+
+.headerTablaConsultaEB{
+	text-align: center;
+}
+
+.tablaslistEven {  
+	BACKGROUND-COLOR: #EEEEEE;
+}

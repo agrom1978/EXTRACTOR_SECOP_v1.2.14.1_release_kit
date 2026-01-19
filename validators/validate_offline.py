@@ -14,20 +14,20 @@ REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 # Ejemplo:
 # EXPECTED = {
 #   "Detalle_SAMC_009_25.html": {
-#       "Codigo Registro Presupuestal (CRP)": "2511250001",
-#       "Identificacion del representante legal (limpio)": "84009052",
+#       "Registro Presupuestal (RP)": "2511250001",
+#       "Certificado de disponibilidad presupuestal": "84009052",
 #   }
 # }
 EXPECTED = {
     # "mi_archivo.html": {
-    #     "Codigo Registro Presupuestal (CRP)": "2511250001",
-    #     "Identificacion del representante legal (limpio)": "84009052",
+    #     "Registro Presupuestal (RP)": "2511250001",
+    #     "Certificado de disponibilidad presupuestal": "84009052",
     # },
 }
 
 FIELDS_UNDER_TEST = [
-    "Codigo Registro Presupuestal (CRP)",
-    "Identificacion del representante legal (limpio)",
+    "Registro Presupuestal (RP)",
+    "Certificado de disponibilidad presupuestal",
 ]
 
 
@@ -75,9 +75,7 @@ def main() -> None:
         results.append({
             "fixture": html_path.name,
             "status": status,
-            "record": {k: record.get(k, "") for k in ["Codigo Registro Presupuestal (CRP)",
-                                                     "Identificacion del representante legal",
-                                                     "Identificacion del representante legal (limpio)"]},
+            "record": {k: record.get(k, "") for k in ["Registro Presupuestal (RP)","Certificado de disponibilidad presupuestal"]},
             "mismatches": mismatches,
         })
 

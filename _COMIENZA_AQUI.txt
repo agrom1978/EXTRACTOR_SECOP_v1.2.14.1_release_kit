@@ -1,6 +1,6 @@
 # 🎊 RESUMEN FINAL DE ENTREGA
 
-**secop_ui.py v1.2.14.1 - Refactorización Completada**
+**secop_ui.py v1.2.15 - Refactorización Completada**
 
 ---
 
@@ -196,7 +196,7 @@ python secop_ui.py
 
 **Preparado por:** Asistente de IA (GitHub Copilot)  
 **Fecha:** 11 de enero de 2026  
-**Versión:** 1.2.14.1  
+**Versión:** 1.2.15  
 **Estado:** ✅ COMPLETADO
 
 **Comienza aquí:** [BIENVENIDA.md](BIENVENIDA.md)

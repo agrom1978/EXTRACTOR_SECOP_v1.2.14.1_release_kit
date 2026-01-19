@@ -1,4 +1,4 @@
-# 🗺️ NAVEGACIÓN RÁPIDA - SECOP UI v1.2.14.1
+# 🗺️ NAVEGACIÓN RÁPIDA - SECOP UI v1.2.15
 
 **⏱️ Necesito:** 5 minutos  
 **👤 Soy:** [Selecciona tu rol]
@@ -258,5 +258,5 @@ python secop_ui.py
 ---
 
 **Última actualización:** 11 de enero de 2026  
-**Versión:** 1.2.14.1  
+**Versión:** 1.2.15  
 **Estado:** ✅ Listo para usar

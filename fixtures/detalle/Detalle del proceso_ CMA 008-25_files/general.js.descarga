@@ -1,0 +1,131 @@
+
+//Validar si jquery esta cargado
+/*if (!window.jQuery) {
+	
+	include('/entidades/comun/js/jquery190.js', function() {
+		callJOTA();
+	});
+}
+else{
+	callJOTA();
+}
+
+function include(filename, onload) {
+	try{
+		console.log('Incluiyendo Jquery');
+	    var head = document.getElementsByTagName('head')[0];
+	    var script = document.createElement('script');
+	    script.src = filename;
+	    script.type = 'text/javascript';
+	    script.onload = function() {
+	    	onload();
+	    };
+	    head.appendChild(script);
+	}catch(e){
+		console.log('Problema cargando jquery :'+e.message);
+	}
+}
+
+function callJOTA(){
+	try{
+		// JOTA
+		$( document ).ready(function() {
+			console.log('Incluiyendo JOTA');
+			//cargando css
+			$('head').append( $('<link rel="stylesheet" type="text/css" />').attr('href', 'https://cdn.jsdelivr.net/npm/avc_embed@1.0.7/dist/avcchat_alpha.css') );
+			//cargando js
+			$.getScript( "https://cdn.jsdelivr.net/npm/avc_embed@1.0.7/dist/cintel_prod_avcchat_alpha.js" )
+			  .done(function( script, textStatus ) {
+				  init_chat("5a68efc4b00c00154e744a82");
+			  })
+			  .fail(function( jqxhr, settings, exception ) {
+			    console.log("problema cargando el js de JOTA");
+			  });
+		});
+	}catch(e){
+		console.log('Problema cargando JOTA');
+	}	
+}
+*/
+
+function ajustarMarco() {
+	var x,y;
+	var test1 = document.body.scrollHeight;
+	var test2 = document.body.offsetHeight;
+
+	if (test1 > test2) { // all but Explorer Mac
+		x = document.body.scrollWidth;
+		y = document.body.scrollHeight-518;
+	} else { // Explorer Mac;
+		// would also work in Explorer 6 Strict, Mozilla and Safari
+		x = document.body.offsetWidth;
+		y = document.body.offsetHeight-518;
+	}
+	e = document.getElementById("marco");
+	e.style.height = y + 'px';
+}
+
+//Crear el modal con js puro
+function createModal(){
+	var div = document.createElement("div");
+	div.id="myModal";
+	div.className ="modal";
+	div.innerHTML = "<div class=\"modalBox\"><img src=\"/puc/comun/images/cargando.gif\" class=\"modal-content\" id=\"img01\"> Cargando...</div>";
+	document.body.appendChild(div);
+}
+
+window.onload = createModal;
+
+/*
+var ALERT_TITLE = "Alerta";
+var ALERT_BUTTON_TEXT = "Aceptar";
+
+if (document.getElementById) {
+	window.alert = function(txt) {
+		createCustomAlert(txt);
+	}
+}
+
+function createCustomAlert(txt) {
+	// shortcut reference to the document object
+	d = document;
+
+	// if the modalContainer object already exists in the DOM, bail out.
+	if (d.getElementById("modalContainer")) return;
+
+	// create the modalContainer div as a child of the BODY element
+	mObj = d.getElementsByTagName("body")[0].appendChild(d.createElement("div"));
+	mObj.id = "modalContainer";
+	 // make sure its as tall as it needs to be to overlay all the content on the page
+	mObj.style.height = document.documentElement.scrollHeight + "px";
+
+	// create the DIV that will be the alert 
+	alertObj = mObj.appendChild(d.createElement("div"));
+	alertObj.id = "alertBox";
+	// MSIE doesnt treat position:fixed correctly, so this compensates for positioning the alert
+	if(d.all && !window.opera) alertObj.style.top = document.documentElement.scrollTop + "px";
+	// center the alert box
+	alertObj.style.left = (d.documentElement.scrollWidth - alertObj.offsetWidth)/2 + "px";
+
+	// create an H1 element as the title bar
+	h1 = alertObj.appendChild(d.createElement("h1"));
+	h1.appendChild(d.createTextNode(ALERT_TITLE));
+
+	// create a paragraph element to contain the txt argument
+	msg = alertObj.appendChild(d.createElement("p"));
+	msg.appendChild(d.createTextNode(txt));
+
+	// create an anchor element to use as the confirmation button.
+	btn = alertObj.appendChild(d.createElement("a"));
+	btn.id = "closeBtn";
+	btn.appendChild(d.createTextNode(ALERT_BUTTON_TEXT));
+	btn.href = "#";
+	// set up the onclick event to remove the alert when the anchor is clicked
+	btn.onclick = function() { removeCustomAlert(); return false; }
+}
+
+// removes the custom alert from the DOM
+function removeCustomAlert() {
+	document.getElementsByTagName("body")[0].removeChild(document.getElementById("modalContainer"));
+}
+ */

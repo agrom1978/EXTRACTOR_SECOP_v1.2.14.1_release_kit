@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import re
+import time
+import random
 import unicodedata
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +26,16 @@ CONSTANCIA_RE = re.compile(r"^(?P<yy>\d{2})-(?P<xx>\d{1,2})-(?P<num>\d{4,12})$")
 
 # Soporta guiones Unicode comunes (en dash, em dash, etc.)
 DASHES_RE = re.compile(r"[\u2010\u2011\u2012\u2013\u2014\u2212]")
+
+# Señales tipicas de bloqueo anti-DDoS del sitio
+BLOCK_MARKERS = [
+    "access blocked",
+    "acceso bloqueado",
+    "possible ddos",
+    "denegacion",
+    "hic",
+    "incident id",
+]
 
 
 # -----------------------------
@@ -359,6 +371,60 @@ def _parse_rp_table(soup: BeautifulSoup) -> Dict[str, str]:
     return out
 
 
+def _extract_cdp(soup: BeautifulSoup) -> str:
+    """Extrae el certificado de disponibilidad presupuestal (CDP) de forma tolerante."""
+    raw = _find_row_value_by_label(soup, "Numero del respaldo presupuestal")
+    if raw:
+        token = _pick_numeric_token(raw)
+        if token:
+            return token
+
+    rows = _parse_section_table(soup, "Respaldos Presupuestales Asociados al Proceso")
+    if rows:
+        header = [_norm_text(h) for h in rows[0]]
+        idx_num = None
+        for i, h in enumerate(header):
+            if "numero" in h and "respaldo" in h:
+                idx_num = i
+        if idx_num is not None:
+            candidates: List[str] = []
+            for r in rows[1:]:
+                if idx_num < len(r):
+                    val = (r[idx_num] or "").strip()
+                    if val:
+                        token = _pick_numeric_token(val)
+                        if not token:
+                            continue
+                        if len(token) == 10:
+                            return token
+                        candidates.append(token)
+            if candidates:
+                return max(candidates, key=len)
+
+    raw = _find_row_value_by_label(soup, "Certificado de disponibilidad presupuestal")
+    if not raw:
+        raw = _find_row_value_by_label(soup, "CDP")
+    if raw:
+        token = _pick_numeric_token(raw)
+        if token:
+            return token
+
+    text_all = soup.get_text(" ", strip=True)
+    m = re.search(r"\bCDP\b\s*(?:No\.|Nro\.|#|:)?\s*([A-Za-z0-9\-/]+)", text_all, flags=re.IGNORECASE)
+    if m:
+        token = m.group(1).strip()
+        picked = _pick_numeric_token(token)
+        if picked:
+            return picked
+    m = re.search(r"respaldo presupuestal\s*(?:No\.|Nro\.|#|:)?\s*([A-Za-z0-9\-/]+)", text_all, flags=re.IGNORECASE)
+    if m:
+        token = m.group(1).strip()
+        picked = _pick_numeric_token(token)
+        if picked:
+            return picked
+    return ""
+
+
 def fetch_detail_html(constancia: str, headless: bool = False, timeout_ms: int = 120_000) -> str:
     """
     Abre el detalle SECOP I en Playwright (visible por defecto para resolver reCAPTCHA) y retorna el HTML renderizado.
@@ -387,6 +453,31 @@ def fetch_detail_html(constancia: str, headless: bool = False, timeout_ms: int =
     return html
 
 
+def _is_blocked_html(html: str) -> bool:
+    text = (html or "").lower()
+    return any(marker in text for marker in BLOCK_MARKERS)
+
+
+def _fetch_detail_html_with_page(page, constancia: str, timeout_ms: int = 120_000) -> str:
+    """
+    Variante para reusar un page/contexto en lotes y evitar señales de automatizacion agresiva.
+    """
+    url = build_url(constancia)
+    page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+    page.wait_for_timeout(1500)
+    try:
+        page.wait_for_selector("td.tttablas", timeout=20_000)
+    except PWTimeoutError:
+        pass
+    page.wait_for_timeout(1200)
+    html = page.content()
+    if _is_blocked_html(html):
+        raise SecopExtractionError(
+            "Acceso bloqueado por el sitio (posible DDoS/WAF). Deteniendo el lote; esperar y/o contactar soporte."
+        )
+    return html
+
+
 
 def _extract_digits(s: str) -> str:
     s = (s or "").strip()
@@ -395,9 +486,59 @@ def _extract_digits(s: str) -> str:
     d = re.sub(r"[^0-9]", "", s)
     return d
 
+
+def _pick_numeric_token(s: str) -> str:
+    """Devuelve el token numerico mas probable en un string.
+
+    Prioriza formatos tipo YYMMDD#### (10 digitos). Si no existe, devuelve
+    el primer token razonable (4-9 digitos) o el mas largo disponible.
+    """
+    s = (s or "").strip()
+    if not s:
+        return ""
+    tokens = re.findall(r"\d+", s)
+    if not tokens:
+        return ""
+    for t in tokens:
+        if len(t) == 10:
+            return t
+    for t in tokens:
+        if 4 <= len(t) <= 9:
+            return t
+    return max(tokens, key=len)
+
+
+
 def _clean_id(s: str) -> str:
     """Identificacion limpia (solo digitos)."""
     return _extract_digits(s)
+
+
+def _extract_id_type(raw: str) -> str:
+    """Extrae el tipo de identificacion (CC, NIT, CE, etc.) desde un string."""
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    s_norm = _norm_text(s)
+    tokens = s_norm.split()
+    if "nit" in tokens:
+        return "NIT"
+    if "extranjeria" in tokens or "ce" in tokens:
+        return "CE"
+    if "pasaporte" in tokens or "pas" in tokens:
+        return "PAS"
+    if "pep" in tokens:
+        return "PEP"
+    if ("tarjeta" in tokens and "identidad" in tokens) or "ti" in tokens:
+        return "TI"
+    if "cedula" in tokens or "cc" in tokens:
+        return "CC"
+    m = re.match(r"\s*([A-Za-z]{1,5})\b", s)
+    if m:
+        token = m.group(1).upper()
+        if token not in {"NO", "NRO"}:
+            return token
+    return ""
 
 
 def _clean_bpim(raw: str) -> str:
@@ -546,14 +687,14 @@ def _extract_crp_code(soup: BeautifulSoup) -> str:
 
 
 
-def _determine_tipo_proceso(bpim: str, fuente_fin: str, rp_code: str) -> str:
-    # Regla simple y conservadora: si hay BPIM -> Inversion.
-    if bpim:
+def _determine_tipo_proceso(tipo_gasto: str) -> str:
+    # Normaliza para tolerar tildes y variaciones ("Inversion"/"Inversión")
+    s = _norm_text(tipo_gasto)
+    if "inversion" in s:
         return "Inversion"
-    # Si hay fuente de financiacion o RP, suele ser inversion en contexto municipal.
-    if fuente_fin or rp_code:
-        return "Inversion"
-    return "Otro"
+    if "funcionamiento" in s:
+        return "Funcionamiento"
+    return ""
 
 
 def _estado_validacion(record: Dict[str, str]) -> Tuple[str, str]:
@@ -582,14 +723,29 @@ def _load_template(template_path: Path):
     return wb
 
 
+def _append_errors_sheet(wb, errors: List[Tuple[str, str]]) -> None:
+    if not errors:
+        return
+    if "Errores" in wb.sheetnames:
+        ws_err = wb["Errores"]
+    else:
+        ws_err = wb.create_sheet("Errores")
+        ws_err.append(["numConstancia", "error"])
+    for c, err in errors:
+        ws_err.append([c, err])
+
+
 def _find_next_row(ws) -> int:
     """
-    Encuentra la siguiente fila vacia basada en columnas A y B (A=Numero proceso info, B=Constancia),
-    porque C tiene formula y no sirve para detectar vacio.
+    Encuentra la siguiente fila vacia basada en columnas clave (evita columna con formula).
     """
+    headers = [c.value for c in ws[1]]
+    header_map = {_norm_key(str(h or "")): i + 1 for i, h in enumerate(headers)}
+    col_a = header_map.get(_norm_key("Numero de proceso (informativo)"), 1)
+    col_b = header_map.get(_norm_key("Numero de constancia"), 2)
     for r in range(2, ws.max_row + 2):
-        a = ws.cell(row=r, column=1).value
-        b = ws.cell(row=r, column=2).value
+        a = ws.cell(row=r, column=col_a).value
+        b = ws.cell(row=r, column=col_b).value
         if (a is None or str(a).strip() == "") and (b is None or str(b).strip() == ""):
             return r
     return ws.max_row + 1
@@ -642,7 +798,8 @@ def _build_record_from_soup(soup: BeautifulSoup, constancia_ok: str) -> Dict[str
 
     # 3) Presupuestal (RP table + fallback KV)
     # Prioridad RP: tabla presupuestal de la seccion; fallback conservador a busqueda tolerante
-    crp = _extract_crp_code(soup)
+    rp_code = _extract_crp_code(soup)
+    cdp = _extract_cdp(soup)
 
     # Campo informativo "Numero de proceso"
     num_proceso_info = _parse_numero_proceso_informativo(soup)
@@ -673,14 +830,25 @@ def _build_record_from_soup(soup: BeautifulSoup, constancia_ok: str) -> Dict[str
     rep_legal = _get_first(contrato_map, ["Nombre del Representante Legal del Contratista", "Representante Legal", "Representante"])
     if not rep_legal:
         rep_legal = _get_first(general_map, ["Representante Legal", "Representante"])
-    rep_ident = _get_first(contrato_map, ["Identificacion del Representante Legal del Contratista", "Identificacion Representante Legal", "Cedula Representante", "Cedula Representante", "Identificacion Representante", "Identificacion Representante"])
 
+    rep_ident = _get_first(
+        contrato_map,
+        [
+            "Identificacion del Representante Legal del Contratista",
+            "Identificacion del Representante Legal",
+            "Identificacion Representante Legal",
+            "Cedula Representante",
+            "Identificacion Representante",
+        ],
+    )
+    if not rep_ident:
+        rep_ident = _get_first(general_map, ["Identificacion del Representante Legal", "Identificacion Representante Legal"])
+
+    tipo_ident = _extract_id_type(ident)
     ident_clean = _clean_id(ident)
-    rep_ident_clean = _clean_id(rep_ident)
 
     # Prioridad: identificacion del representante legal capturada por rotulo (mas estable en SECOP)
-    rep_ident_final = rep_id_raw or rep_ident
-    rep_ident_clean_final = _clean_id(rep_ident_final)
+    rep_ident_final = _clean_id(rep_id_raw or rep_ident)
 
     # BPIM (si esta en cualquier mapa)
     bpim = _get_first(contrato_map, ["BPIM", "BPIN", "Codigo BPIM", "Codigo BPIM"])
@@ -689,16 +857,20 @@ def _build_record_from_soup(soup: BeautifulSoup, constancia_ok: str) -> Dict[str
 
     bpim = _clean_bpim(bpim)
 
-    tipo_proc = _determine_tipo_proceso(bpim, fuente_fin, crp)
+    tipo_gasto = _get_first(general_map, ["Tipo de Gasto", "Tipo Gasto"])
+    if not tipo_gasto:
+        tipo_gasto = _get_first(contrato_map, ["Tipo de Gasto", "Tipo Gasto"])
+    tipo_proc = _determine_tipo_proceso(tipo_gasto)
 
     record = {
         "Numero de proceso (informativo)": num_proceso_info,
         "Numero de constancia": constancia_ok,
-        "Tipo de proceso": tipo_proc,
+        "Tipo de Gasto": tipo_proc,
         "Estado del proceso": estado_proc,
         "Modalidad de contratacion": modalidad,
         "Fuente de financiacion": fuente_fin,
-        "Codigo Registro Presupuestal (CRP)": crp,
+        "Registro Presupuestal (RP)": rp_code,
+        "Certificado de disponibilidad presupuestal": cdp,
         "Numero de contrato": num_contrato,
         "Objeto del contrato": objeto,
         "Valor del contrato (COP)": valor_num,
@@ -706,11 +878,10 @@ def _build_record_from_soup(soup: BeautifulSoup, constancia_ok: str) -> Dict[str
         "Fecha de inicio": fecha_inicio,
         "Fecha de terminacion": fecha_fin,
         "Razon social del proponente/contratista": razon_social,
-        "Identificacion del proponente (CC/NIT)": ident,
-        "Identificacion del proponente/contratista (limpio)": ident_clean,
+        "Tipo de identificacion": tipo_ident,
+        "Identificacion del proponente/contratista": ident_clean,
         "Representante legal": rep_legal,
-        "Identificacion representante legal": rep_ident_final,
-        "Identificacion del representante legal (limpio)": rep_ident_clean_final,
+        "Identificación del representante legal": rep_ident_final,
         "Codigo BPIM": bpim,
         "Fuente del documento": "SECOP I (detalleProceso)",
     }
@@ -770,6 +941,8 @@ def extract_batch_to_excel(
     out_dir: Path,
     headless: bool = False,
     template_path: Optional[Path] = None,
+    delay_seconds: float = 30.0,
+    backoff_max_seconds: float = 600.0,
 ) -> Tuple[Path, List[Tuple[str, str]]]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -783,28 +956,131 @@ def extract_batch_to_excel(
     row_idx = _find_next_row(ws)
 
     errors: List[Tuple[str, str]] = []
-    for c in constancias:
+    blocked = False
+    backoff = delay_seconds
+
+    total_constancias = len(constancias)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=headless)
+        context = browser.new_context(viewport={"width": 1280, "height": 720})
+        page = context.new_page()
         try:
-            constancia_ok = validate_constancia(c)
-            html = fetch_detail_html(constancia_ok, headless=headless)
-            soup = BeautifulSoup(html, "html.parser")
-            record = _build_record_from_soup(soup, constancia_ok)
-            _write_record_row(ws, wb, headers, record, constancia_ok, row_idx)
-            row_idx += 1
-        except Exception as e:
-            errors.append((c, str(e)))
+            if total_constancias > 2:
+                warmup = random.uniform(15.0, 30.0)
+                time.sleep(warmup)
+            for idx, c in enumerate(constancias):
+                try:
+                    constancia_ok = validate_constancia(c)
+                    # Pausa antes de abrir el detalle para evitar bloqueos
+                    if total_constancias > 2 and idx > 0:
+                        jitter = random.uniform(0.8, 1.2)
+                        time.sleep(backoff * jitter)
+                    html = _fetch_detail_html_with_page(page, constancia_ok)
+                    soup = BeautifulSoup(html, "html.parser")
+                    record = _build_record_from_soup(soup, constancia_ok)
+                    _write_record_row(ws, wb, headers, record, constancia_ok, row_idx)
+                    row_idx += 1
+                    backoff = delay_seconds
+                except SecopExtractionError as e:
+                    msg = str(e)
+                    errors.append((c, msg))
+                    if "bloqueado" in msg.lower() or "blocked" in msg.lower():
+                        blocked = True
+                        break
+                    backoff = min(backoff * 2, backoff_max_seconds)
+                except Exception as e:
+                    errors.append((c, str(e)))
+                    backoff = min(backoff * 2, backoff_max_seconds)
+
+        finally:
+            context.close()
+            browser.close()
 
     if errors:
         if "Errores" in wb.sheetnames:
             del wb["Errores"]
-        ws_err = wb.create_sheet("Errores")
-        ws_err.append(["numConstancia", "error"])
-        for c, err in errors:
-            ws_err.append([c, err])
+        _append_errors_sheet(wb, errors)
 
     out_path = out_dir / f"Resultados_Extraccion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     wb.save(out_path)
+    if blocked:
+        errors.append(("_BLOQUEO_", "Lote detenido por bloqueo anti-DDoS. Reintenta mas tarde."))
     return out_path, errors
+
+
+def append_batch_to_excel(
+    constancias: List[str],
+    out_path: Path,
+    headless: bool = False,
+    template_path: Optional[Path] = None,
+    delay_seconds: float = 30.0,
+    backoff_max_seconds: float = 600.0,
+) -> Tuple[Path, List[Tuple[str, str]], int]:
+    out_path = Path(out_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if template_path is None:
+        template_path = Path(__file__).parent / "templates" / "Plantilla_Salida_EXTRACTOR_SECOP_v1.2.10.xlsx"
+
+    if out_path.exists():
+        wb = openpyxl.load_workbook(out_path)
+        if "Resultados_Extraccion" not in wb.sheetnames:
+            raise SecopExtractionError("La plantilla no contiene la hoja 'Resultados_Extraccion'.")
+    else:
+        wb = _load_template(template_path)
+
+    ws = wb["Resultados_Extraccion"]
+    headers = [c.value for c in ws[1]]
+    row_idx = _find_next_row(ws)
+
+    errors: List[Tuple[str, str]] = []
+    blocked = False
+    backoff = delay_seconds
+    ok_count = 0
+
+    total_constancias = len(constancias)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=headless)
+        context = browser.new_context(viewport={"width": 1280, "height": 720})
+        page = context.new_page()
+        try:
+            if total_constancias > 2:
+                warmup = random.uniform(15.0, 30.0)
+                time.sleep(warmup)
+            for idx, c in enumerate(constancias):
+                try:
+                    constancia_ok = validate_constancia(c)
+                    if total_constancias > 2 and idx > 0:
+                        jitter = random.uniform(0.8, 1.2)
+                        time.sleep(backoff * jitter)
+                    html = _fetch_detail_html_with_page(page, constancia_ok)
+                    soup = BeautifulSoup(html, "html.parser")
+                    record = _build_record_from_soup(soup, constancia_ok)
+                    _write_record_row(ws, wb, headers, record, constancia_ok, row_idx)
+                    row_idx += 1
+                    ok_count += 1
+                    backoff = delay_seconds
+                except SecopExtractionError as e:
+                    msg = str(e)
+                    errors.append((c, msg))
+                    if "bloqueado" in msg.lower() or "blocked" in msg.lower():
+                        blocked = True
+                        break
+                    backoff = min(backoff * 2, backoff_max_seconds)
+                except Exception as e:
+                    errors.append((c, str(e)))
+                    backoff = min(backoff * 2, backoff_max_seconds)
+        finally:
+            context.close()
+            browser.close()
+
+    if errors:
+        _append_errors_sheet(wb, errors)
+
+    wb.save(out_path)
+    if blocked:
+        errors.append(("_BLOQUEO_", "Lote detenido por bloqueo anti-DDoS. Reintenta mas tarde."))
+    return out_path, errors, ok_count
 
 
 def extract_record_from_html(html: str, constancia_ok: str = "") -> dict:
@@ -812,24 +1088,18 @@ def extract_record_from_html(html: str, constancia_ok: str = "") -> dict:
 
     - No usa Playwright
     - No escribe Excel
-    - Esta disenado para validacion y regresion de extraccion (RP e identificacion RL)
+    - Esta disenado para validacion y regresion de extraccion (RP y CDP)
     """
     soup = BeautifulSoup(html, "html.parser")
 
-    # Identificacion representante legal (prioridad por rotulo)
-    rep_ident_raw = _find_row_value_by_label(soup, "Identificacion del Representante Legal")
-    rep_ident_final = rep_ident_raw.strip() if rep_ident_raw else ""
-    rep_ident_clean_final = _clean_id(rep_ident_final)
-
-    # RP/CRP (prioridad por tabla de seccion; fallback tolerante)
-    crp = _extract_crp_code(soup)
+    rp_code = _extract_crp_code(soup)
+    cdp = _extract_cdp(soup)
 
     return {
         "Numero de constancia": constancia_ok,
-        "Codigo Registro Presupuestal (CRP)": crp,
-        "Identificacion del representante legal (CC/NIT)": rep_ident_clean_final,
+        "Registro Presupuestal (RP)": rp_code,
+        "Certificado de disponibilidad presupuestal": cdp,
     }
-
 
 
 # Compatibilidad con tu UI: permite secop_extract.main(url) o main(constancia)

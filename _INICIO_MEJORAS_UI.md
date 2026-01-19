@@ -1,7 +1,7 @@
 # 🎨 Mejoras Estéticas UI - COMPLETADAS ✅
 
 ## 📊 Estado Actual
-- **Versión:** 1.2.14.1
+- **Versión:** 1.2.15
 - **Fecha:** 11 de enero de 2025
 - **Estado:** ✅ Completado y sincronizado en GitHub
 - **Rama:** main (todos los commits pusheados)
@@ -70,7 +70,7 @@ Safari: Cmd+Option+U
 f3a4eb8  style: Modernizar UI con tema oscuro, animaciones...
 ```
 
-**Repositorio:** https://github.com/agrom1978/EXTRACTOR_SECOP_v1.2.14.1_release_kit
+**Repositorio:** https://github.com/agrom1978/EXTRACTOR_SECOP_v1.2.15_release_kit
 
 ---
 
@@ -221,7 +221,7 @@ f3a4eb8  style: Modernizar UI con tema oscuro, animaciones...
 
 ## 🏆 Conclusión
 
-✅ **TODAS las 10 mejoras estéticas han sido implementadas exitosamente en v1.2.14.1**
+✅ **TODAS las 10 mejoras estéticas han sido implementadas exitosamente en v1.2.15**
 
 El Extractor SECOP ahora cuenta con:
 - 🎨 Interfaz moderna y profesional

@@ -1,4 +1,4 @@
-# 🎉 BIENVENIDO A LA REFACTORIZACIÓN SECOP UI v1.2.14.1
+# 🎉 BIENVENIDO A LA REFACTORIZACIÓN SECOP UI v1.2.15
 
 **Completado:** 11 de enero de 2026  
 **Estado:** ✅ Listo para usar  
@@ -221,5 +221,5 @@ Consulta [NAVEGACION_RAPIDA.md](NAVEGACION_RAPIDA.md) según tu rol.
 ---
 
 *Refactorización completada: 11 de enero de 2026*  
-*Versión: 1.2.14.1*  
+*Versión: 1.2.15*  
 *Estado: ✅ Listo para usar*

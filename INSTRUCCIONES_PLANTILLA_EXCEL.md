@@ -74,7 +74,7 @@ Después de hacer los cambios, verifica que:
    1. Número de proceso (informativo)
    2. Número de constancia
    3. Abrir detalle
-   4. Tipo de proceso
+   4. Tipo de Gasto
    5. Estado del proceso
    6. Modalidad de contratación
    7. Fuente de financiación
