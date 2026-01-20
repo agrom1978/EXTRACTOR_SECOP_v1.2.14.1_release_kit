@@ -168,7 +168,7 @@ HTML = r"""
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
-  <title>Extractor SECOP - Automatizacion de Procesos</title>
+  <title>AutoSECOP1 - Sistema de Extraccion y Consolidacion de Datos Contractuales V1.215 Estable</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%230ea5e9'>SECOP</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -233,7 +233,7 @@ HTML = r"""
         radial-gradient(circle at 10% 10%, rgba(15, 118, 110, 0.12), transparent 50%),
         radial-gradient(circle at 90% 15%, rgba(245, 158, 11, 0.12), transparent 45%),
         linear-gradient(120deg, rgba(15, 23, 42, 0.03) 0%, rgba(15, 23, 42, 0.0) 60%),
-        repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.03) 0 1px, transparent 1px 48px);
+        repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.02) 0 1px, transparent 1px 72px);
       color: var(--text);
       line-height: 1.6;
       padding: 24px;
@@ -291,16 +291,10 @@ HTML = r"""
     }
     
     .logo-icon {
-      font-size: 12px;
-      letter-spacing: 2px;
-      padding: 10px 16px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, var(--primary), var(--accent-1));
-      color: #ffffff;
-      font-weight: 700;
-      text-transform: uppercase;
-      animation: float 3s ease-in-out infinite;
-      box-shadow: 0 10px 18px rgba(15, 118, 110, 0.35);
+      width: clamp(200px, 32vw, 360px);
+      height: auto;
+      display: block;
+      max-width: 100%;
     }
     
     @keyframes float {
@@ -360,6 +354,24 @@ HTML = r"""
     }
     
     /* ============== FORMULARIO ============== */
+    .field-block {
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text);
+      font-size: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
     label {
       display: block;
       font-weight: 600;
@@ -370,11 +382,11 @@ HTML = r"""
     
     textarea {
       width: 100%;
-      min-height: 180px;
-      padding: 14px;
+      min-height: 200px;
+      padding: 16px;
       border: 2px solid var(--border);
-      border-radius: 10px;
-      font-family: 'IBM Plex Mono', 'Courier New', monospace;
+      border-radius: 12px;
+      font-family: inherit;
       font-size: 14px;
       background: var(--bg-secondary);
       color: var(--text);
@@ -396,7 +408,7 @@ HTML = r"""
     
     /* ============== INPUTS ============== */
     .input-hint {
-      margin-top: 10px;
+      margin-top: 12px;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
@@ -413,6 +425,12 @@ HTML = r"""
       font-weight: 600;
       border: 1px solid transparent;
       animation: slideIn 0.3s ease;
+    }
+
+    .badge-strong {
+      font-size: 12.5px;
+      padding: 7px 14px;
+      letter-spacing: 0.2px;
     }
     
     @keyframes slideIn {
@@ -455,8 +473,38 @@ HTML = r"""
       display: flex;
       gap: 10px;
       align-items: center;
-      margin-top: 16px;
+      margin-top: 18px;
       flex-wrap: wrap;
+    }
+
+    .row.action-row {
+      margin-top: 20px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+
+    .chip-label {
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--primary-dark);
+      border: 1px solid rgba(15, 118, 110, 0.2);
+      font-weight: 700;
+    }
+
+    .select {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text);
+      font-weight: 600;
     }
     
     button {
@@ -478,7 +526,23 @@ HTML = r"""
       color: white;
       box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
       flex: 1;
-      min-width: 120px;
+      min-width: 160px;
+      min-height: 48px;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+      border-radius: 12px;
+    }
+
+    #btnIcon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.2);
+      font-size: 12px;
+      line-height: 1;
     }
     
     #btnExtract:hover:not(:disabled) {
@@ -491,9 +555,11 @@ HTML = r"""
     }
     
     .btn-secondary {
-      background: transparent;
+      background: rgba(15, 23, 42, 0.03);
       color: var(--text);
-      border: 2px solid var(--border);
+      border: 1px solid var(--border);
+      min-height: 44px;
+      border-radius: 10px;
     }
     
     .btn-secondary:hover:not(:disabled) {
@@ -551,18 +617,20 @@ HTML = r"""
       gap: 16px;
       justify-content: space-between;
       align-items: center;
+      text-align: center;
     }
 
     .results-title {
-      font-family: 'Space Grotesk', sans-serif;
       font-size: 18px;
       font-weight: 600;
       margin-bottom: 6px;
+      text-align: center;
     }
 
     .results-subtitle {
       font-size: 13px;
       color: var(--text-muted);
+      text-align: center;
     }
 
     .status-pill {
@@ -574,6 +642,7 @@ HTML = r"""
       text-transform: uppercase;
       background: rgba(15, 118, 110, 0.16);
       color: var(--primary-dark);
+      text-align: center;
     }
 
     .status.warning .status-pill {
@@ -590,6 +659,7 @@ HTML = r"""
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 12px;
+      text-align: center;
     }
 
     .stat-card {
@@ -598,19 +668,21 @@ HTML = r"""
       border-radius: 12px;
       padding: 12px 14px;
       box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+      text-align: center;
     }
 
     .stat-label {
       font-size: 13px;
       color: #475569;
       margin-bottom: 8px;
+      text-align: center;
     }
 
     .stat-value {
       font-size: 22px;
       font-weight: 800;
-      font-family: 'Space Grotesk', sans-serif;
       color: #0f172a;
+      text-align: center;
     }
 
     .download-row {
@@ -682,7 +754,7 @@ HTML = r"""
     
     /* ============== TEXTO ============== */
     .mono {
-      font-family: 'IBM Plex Mono', monospace;
+      font-family: inherit;
       font-weight: 600;
       background: rgba(15, 23, 42, 0.08);
       padding: 2px 6px;
@@ -724,20 +796,77 @@ HTML = r"""
       font-size: 13px;
       line-height: 1.6;
     }
-    
+
     .hint strong {
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
     }
+
+    .hint-collapsible {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .hint-collapsible summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 16px 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .hint-collapsible summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .hint-collapsible summary::after {
+      content: "+";
+      font-size: 16px;
+      color: var(--primary-dark);
+      transition: transform 0.2s ease;
+    }
+
+    .hint-collapsible[open] summary::after {
+      content: "–";
+    }
+
+    .hint-collapsible .hint-body {
+      padding: 0 18px 16px 18px;
+    }
     
     .hint ol {
-      margin-left: 20px;
+      margin-left: 0;
       margin-top: 8px;
+      list-style: none;
+      counter-reset: step;
     }
     
     .hint li {
-      margin: 6px 0;
+      margin: 8px 0;
+      padding-left: 30px;
+      position: relative;
+    }
+
+    .hint li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 2px;
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.16);
+      color: var(--primary-dark);
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     
     /* ============== PROGRESS ============== */
@@ -805,6 +934,15 @@ HTML = r"""
       flex-wrap: wrap;
       gap: 16px;
     }
+
+    .footer-credit {
+      text-align: right;
+    }
+
+    .footer-credit strong {
+      color: var(--text);
+      font-weight: 700;
+    }
     
     a {
       color: var(--primary);
@@ -823,7 +961,7 @@ HTML = r"""
       body {
         padding: 12px;
       }
-      
+
       .card {
         padding: 20px;
       }
@@ -846,6 +984,10 @@ HTML = r"""
         width: 100%;
         justify-content: center;
       }
+
+      textarea {
+        min-height: 150px;
+      }
       
       .row {
         flex-direction: column;
@@ -865,13 +1007,9 @@ HTML = r"""
   <div class="container">
     <header class="header">
       <div class="logo">
-        <div class="logo-icon">SECOP</div>
-        <div class="logo-text">
-          <h1>Extractor SECOP</h1>
-          <p class="tagline">Automatizacion de procesos de contratacion</p>
-        </div>
+        <img class="logo-icon" src="/static/Logo_Extractor_2.png" alt="Logo AutoSECOP1" />
       </div>
-      <div class="version-badge">v{{ version }}</div>
+      
     </header>
 
     <div class="card">
@@ -880,7 +1018,7 @@ HTML = r"""
         <div class="results-head hide-on-reset">
           <div>
             <div class="results-title">Resultados de extraccion</div>
-            <div class="results-subtitle">Resumen del lote procesado en SECOP</div>
+            <div class="results-subtitle">Resumen del lote procesado en AutoSECOP1</div>
           </div>
           <div class="status-pill">
             {% if result and result.ok_count > 0 and result.fail_count == 0 %}
@@ -947,7 +1085,10 @@ HTML = r"""
 
       <!-- FORMULARIO PRINCIPAL -->
       <form id="form" method="post" action="{{ url_for('extract') }}">
-        <label for="raw">Constancias a procesar</label>
+        <div class="field-block">
+          <label for="raw" class="section-title">Constancias a procesar</label>
+          <div class="section-subtitle">Pega constancias o una tabla; el sistema detecta automaticamente.</div>
+        </div>
         <textarea 
           id="raw" 
           name="raw" 
@@ -959,20 +1100,22 @@ O pega una tabla completa: el sistema detecta automaticamente"
         >{{ raw or '' }}</textarea>
 
         <div class="input-hint">
-          <span id="preinfo" class="badge badge-info" style="display: none;"></span>
+          <span id="preinfo-valid" class="badge badge-success badge-strong" style="display: none;"></span>
+          <span id="preinfo-dup" class="badge badge-warning badge-strong" style="display: none;"></span>
+          <span id="preinfo-invalid" class="badge badge-danger badge-strong" style="display: none;"></span>
         </div>
 
-        <div class="row" style="margin-top: 12px;">
-          <label for="mode" style="margin: 0;">Modo de extraccion</label>
-          <select id="mode" name="mode" style="padding: 8px 10px; border-radius: 8px; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text); font-weight: 600;">
+        <div class="row" style="margin-top: 16px;">
+          <label for="mode" class="field-label chip-label">Modo de extraccion</label>
+          <select id="mode" name="mode" class="select">
             <option value="normal" {% if mode == "normal" %}selected{% endif %}>Normal (mas rapido)</option>
             <option value="seguro" {% if mode == "seguro" %}selected{% endif %}>Seguro (anti-bloqueo)</option>
           </select>
         </div>
 
-        <div class="row">
+        <div class="row action-row">
           <button id="btnExtract" type="submit">
-            <span id="btnIcon"></span>
+            <span id="btnIcon">&gt;</span>
             <span id="btnText">Extraer y descargar</span>
           </button>
           <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
@@ -995,20 +1138,22 @@ O pega una tabla completa: el sistema detecta automaticamente"
         </div>
 
         <!-- INSTRUCCIONES PERMANENTES -->
-        <div class="hint">
-          <strong>Guia rapida</strong>
-          <ol>
-            <li>Ingresa constancias (una por linea o tabla completa)</li>
-            <li>Haz clic en "Extraer y descargar" para iniciar el proceso</li>
-            <li>Se abrira un navegador por cada constancia</li>
-            <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
-            <li>Se descarga automaticamente un unico Excel con los resultados</li>
-          </ol>
-        </div>
+        <details class="hint hint-collapsible">
+          <summary>Guia rapida</summary>
+          <div class="hint-body">
+            <ol>
+              <li>Ingresa constancias (una por linea o tabla completa)</li>
+              <li>Haz clic en "Extraer y descargar" para iniciar el proceso</li>
+              <li>Se abrira un navegador por cada constancia</li>
+              <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
+              <li>Se descarga automaticamente un unico Excel con los resultados</li>
+            </ol>
+          </div>
+        </details>
 
         <div class="footer">
           <div>Salida: <span class="mono">Resultados_Extraccion</span> (Excel unico)</div>
-          <div>Creado por O.Guerra26</div>
+          <div class="footer-credit">Created by <strong>AGROM1978</strong><br/>Soluciones digitales con precision y trazabilidad</div>
         </div>
       </form>
 
@@ -1017,6 +1162,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
 
   <script>
     const CONSTANCIA_RE = /\b(\d{2}-\d{1,2}-\d{4,12})\b/g;
+    const CONSTANCIA_TEST_RE = /^\d{2}-\d{1,2}-\d{4,12}$/;
     const DASHES_UNICODE = ["\u2013", "\u2014", "\u2212", "\u2010", "\u2011", "\u2012", "\u2043"];
     function normalizeText(s){
       let result = (s || "");
@@ -1042,16 +1188,63 @@ O pega una tabla completa: el sistema detecta automaticamente"
       return out;
     }
 
-    const preinfo = document.getElementById("preinfo");
+    function countInvalidTokens(text){
+      const parts = text.split(/[\s,;]+/);
+      let invalid = 0;
+      for (const part of parts) {
+        let token = part.replace(/[^\d\-]/g, "");
+        if (!token) continue;
+        const dashes = (token.match(/-/g) || []).length;
+        if (dashes >= 2 && !CONSTANCIA_TEST_RE.test(token)) {
+          invalid += 1;
+        }
+      }
+      return invalid;
+    }
+
+    function detectStats(){
+      const t = normalizeText(document.getElementById("raw").value);
+      const m = t.match(CONSTANCIA_RE) || [];
+      const seen = new Set();
+      const uniques = [];
+      for (const x of m){
+        const v = x.replace(/\s+/g, "");
+        if (!seen.has(v)){
+          seen.add(v);
+          uniques.push(v);
+        }
+      }
+      return {
+        valid: uniques.length,
+        duplicates: Math.max(0, m.length - uniques.length),
+        invalid: countInvalidTokens(t),
+      };
+    }
+
+    const preinfoValid = document.getElementById("preinfo-valid");
+    const preinfoDup = document.getElementById("preinfo-dup");
+    const preinfoInvalid = document.getElementById("preinfo-invalid");
     const raw = document.getElementById("raw");
     
     function updatePreinfo(){
-      const c = detectConstancias();
-      if (c.length > 0) {
-        preinfo.textContent = `Detectadas: ${c.length} constancia${c.length !== 1 ? 's' : ''}`;
-        preinfo.style.display = "inline-flex";
+      const stats = detectStats();
+      if (stats.valid > 0) {
+        preinfoValid.textContent = `Validas: ${stats.valid}`;
+        preinfoValid.style.display = "inline-flex";
       } else {
-        preinfo.style.display = "none";
+        preinfoValid.style.display = "none";
+      }
+      if (stats.duplicates > 0) {
+        preinfoDup.textContent = `Duplicadas: ${stats.duplicates}`;
+        preinfoDup.style.display = "inline-flex";
+      } else {
+        preinfoDup.style.display = "none";
+      }
+      if (stats.invalid > 0) {
+        preinfoInvalid.textContent = `Invalidas: ${stats.invalid}`;
+        preinfoInvalid.style.display = "inline-flex";
+      } else {
+        preinfoInvalid.style.display = "none";
       }
     }
     
@@ -1059,9 +1252,6 @@ O pega una tabla completa: el sistema detecta automaticamente"
     updatePreinfo();
 
     function resetFormAfterDownload() {
-      document.querySelectorAll(".hide-on-reset").forEach((el) => {
-        el.style.display = "none";
-      });
       const progress = document.getElementById("progressContainer");
       if (progress) {
         progress.style.display = "none";
@@ -1072,6 +1262,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       }
       raw.value = "";
       updatePreinfo();
+      document.getElementById("btnIcon").textContent = ">";
     }
 
     function triggerDownload(url) {
@@ -1127,7 +1318,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       document.getElementById("progressContainer").style.display = "none";
       const btn = document.getElementById("btnExtract");
       btn.disabled = false;
-      document.getElementById("btnIcon").textContent = "";
+      document.getElementById("btnIcon").textContent = ">";
       document.getElementById("btnText").textContent = "Extraer y descargar";
       raw.focus();
     });
@@ -1144,7 +1335,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       }
       
       document.getElementById("btnExtract").disabled = true;
-      document.getElementById("btnIcon").textContent = "";
+      document.getElementById("btnIcon").innerHTML = "<span class=\"spinner\"></span>";
       document.getElementById("btnText").textContent = "Procesando...";
       document.getElementById("runtime").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
