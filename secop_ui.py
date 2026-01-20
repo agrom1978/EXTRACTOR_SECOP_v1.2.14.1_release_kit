@@ -143,7 +143,7 @@ def _get_workspace_info() -> Tuple[str, Optional[Path], int]:
     return workspace_id, path, count
 
 
-def _render_main(raw: str, result: Optional[dict], mode: str, accumulate: bool):
+def _render_main(raw: str, result: Optional[dict], mode: str, accumulate: bool, auto_download: bool = False):
     _, batch_path, batch_count = _get_workspace_info()
     return render_template_string(
         HTML,
@@ -155,6 +155,7 @@ def _render_main(raw: str, result: Optional[dict], mode: str, accumulate: bool):
         batch_active=bool(batch_path),
         batch_count=batch_count,
         batch_name=batch_path.name if batch_path else "-",
+        auto_download=auto_download,
     )
 
 
@@ -618,28 +619,60 @@ HTML = r"""
       gap: 12px;
       justify-content: space-between;
       align-items: center;
-      padding-top: 6px;
       border-top: 1px dashed rgba(15, 23, 42, 0.12);
+      background: linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.06));
+      border-radius: 12px;
+      padding: 14px;
     }
 
-    .batch-panel {
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 12px;
-      border: 1px dashed rgba(15, 23, 42, 0.12);
-      background: var(--bg-secondary);
+    .download-meta {
+      display: grid;
+      gap: 8px;
+    }
+
+    .download-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      color: var(--primary-dark);
+    }
+
+    .file-line {
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
+      gap: 8px;
     }
 
-    .batch-actions {
+    .file-name {
+      max-width: 520px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-copy {
+      border: 1px solid rgba(15, 118, 110, 0.28);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--primary-dark);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .download-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
+      justify-content: flex-end;
+    }
+
+    .hide-on-reset {
+      display: block;
     }
 
     @keyframes fadeUp {
@@ -843,8 +876,8 @@ HTML = r"""
 
     <div class="card">
       <!-- PANEL DE RESULTADOS -->
-      <div class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
-        <div class="results-head">
+      <div id="resultPanel" class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
+        <div class="results-head hide-on-reset">
           <div>
             <div class="results-title">Resultados de extraccion</div>
             <div class="results-subtitle">Resumen del lote procesado en SECOP</div>
@@ -876,19 +909,24 @@ HTML = r"""
               <div class="stat-value">{{ result.fail_count }}</div>
             </div>
           </div>
-          <div class="download-row">
-            <div>
-              <strong>Archivo generado:</strong>
-              <span class="mono">{{ result.output_name }}</span>
+          <div class="download-row hide-on-reset">
+            <div class="download-meta">
+              <div class="download-label">Ruta del archivo</div>
+              <div class="file-line">
+                <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
+                <button class="btn-copy" type="button" data-copy="{{ result.output_path }}">Copiar ruta</button>
+              </div>
             </div>
-            {% if result.download_url %}
-              <a href="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
-                Descargar Excel
-              </a>
-            {% endif %}
+            <div class="download-actions">
+              {% if result.download_url %}
+                <a id="btnRedownload" href="{{ result.download_url }}" data-download="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
+                  Descargar de nuevo
+                </a>
+              {% endif %}
+            </div>
           </div>
           {% if result.fail_count > 0 %}
-            <div style="margin-top: 6px;">
+            <div class="hide-on-reset" style="margin-top: 6px;">
               <strong class="small">Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
               <div class="error-list small">
                 {% for c, e in result.errors %}
@@ -932,17 +970,10 @@ O pega una tabla completa: el sistema detecta automaticamente"
           </select>
         </div>
 
-        <div class="row" style="margin-top: 10px;">
-          <label style="margin: 0; display: flex; align-items: center; gap: 10px;">
-            <input type="checkbox" id="accumulate" name="accumulate" value="1" {% if accumulate %}checked{% endif %} />
-            Acumular en un solo Excel (descarga manual)
-          </label>
-        </div>
-
         <div class="row">
           <button id="btnExtract" type="submit">
             <span id="btnIcon"></span>
-            <span id="btnText">Extraer</span>
+            <span id="btnText">Extraer y descargar</span>
           </button>
           <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
         </div>
@@ -968,11 +999,10 @@ O pega una tabla completa: el sistema detecta automaticamente"
           <strong>Guia rapida</strong>
           <ol>
             <li>Ingresa constancias (una por linea o tabla completa)</li>
-            <li>Haz clic en "Extraer" para iniciar el proceso</li>
+            <li>Haz clic en "Extraer y descargar" para iniciar el proceso</li>
             <li>Se abrira un navegador por cada constancia</li>
             <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
-            <li>Recibiras un unico Excel con los resultados consolidados</li>
-            <li>Si activas acumulacion, descarga el Excel cuando presiones "Descargar lote"</li>
+            <li>Se descarga automaticamente un unico Excel con los resultados</li>
           </ol>
         </div>
 
@@ -982,23 +1012,6 @@ O pega una tabla completa: el sistema detecta automaticamente"
         </div>
       </form>
 
-      {% if batch_active %}
-        <div class="batch-panel">
-          <div>
-            <strong>Lote activo:</strong>
-            <span class="mono">{{ batch_name }}</span>
-            <span class="small muted" style="margin-left: 8px;">{{ batch_count }} registros acumulados</span>
-          </div>
-          <div class="batch-actions">
-            <form method="post" action="{{ url_for('finalize') }}">
-              <button id="btnFinalize" type="submit">Descargar lote</button>
-            </form>
-            <form method="post" action="{{ url_for('reset_batch') }}">
-              <button class="btn-secondary" type="submit">Reiniciar lote</button>
-            </form>
-          </div>
-        </div>
-      {% endif %}
     </div>
   </div>
 
@@ -1045,6 +1058,66 @@ O pega una tabla completa: el sistema detecta automaticamente"
     raw.addEventListener("input", updatePreinfo);
     updatePreinfo();
 
+    function resetFormAfterDownload() {
+      document.querySelectorAll(".hide-on-reset").forEach((el) => {
+        el.style.display = "none";
+      });
+      const progress = document.getElementById("progressContainer");
+      if (progress) {
+        progress.style.display = "none";
+      }
+      const runtime = document.getElementById("runtime");
+      if (runtime) {
+        runtime.style.display = "none";
+      }
+      raw.value = "";
+      updatePreinfo();
+    }
+
+    function triggerDownload(url) {
+      const frame = document.createElement("iframe");
+      frame.style.display = "none";
+      frame.src = url;
+      document.body.appendChild(frame);
+      window.setTimeout(() => {
+        document.body.removeChild(frame);
+      }, 2000);
+    }
+
+    document.querySelectorAll("[data-copy]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const text = btn.getAttribute("data-copy") || "";
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = "Copiado";
+          setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
+        } catch (e) {
+          const temp = document.createElement("textarea");
+          temp.value = text;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand("copy");
+          document.body.removeChild(temp);
+          btn.textContent = "Copiado";
+          setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
+        }
+      });
+    });
+
+    const redownload = document.getElementById("btnRedownload");
+    if (redownload) {
+      redownload.addEventListener("click", (e) => {
+        e.preventDefault();
+        const url = redownload.getAttribute("data-download");
+        if (url) {
+          triggerDownload(url);
+          window.setTimeout(() => {
+            resetFormAfterDownload();
+          }, 800);
+        }
+      });
+    }
+
     document.getElementById("btnClear").addEventListener("click", () => {
       raw.value = "";
       updatePreinfo();
@@ -1055,7 +1128,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       const btn = document.getElementById("btnExtract");
       btn.disabled = false;
       document.getElementById("btnIcon").textContent = "";
-      document.getElementById("btnText").textContent = "Extraer";
+      document.getElementById("btnText").textContent = "Extraer y descargar";
       raw.focus();
     });
 
@@ -1085,6 +1158,15 @@ O pega una tabla completa: el sistema detecta automaticamente"
       
       window.addEventListener("beforeunload", () => clearInterval(interval));
     });
+
+    {% if result and result.download_url and auto_download %}
+    window.setTimeout(() => {
+      triggerDownload("{{ result.download_url }}");
+      window.setTimeout(() => {
+        resetFormAfterDownload();
+      }, 800);
+    }, 600);
+    {% endif %}
   </script>
 </body>
 </html>
@@ -1116,7 +1198,7 @@ def extract():
     """
     raw = request.form.get("raw", "").strip()
     mode = request.form.get("mode", "normal").strip().lower()
-    accumulate = request.form.get("accumulate", "").strip() == "1"
+    accumulate = False
     cleanup_old_workspaces()
     
     # Validacion: entrada vacia
@@ -1126,6 +1208,7 @@ def extract():
             "ok_count": 0,
             "fail_count": 0,
             "output_name": "-",
+            "output_path": "-",
             "download_url": None,
             "errors": [],
             "has_more_errors": False,
@@ -1144,6 +1227,7 @@ def extract():
             "ok_count": 0,
             "fail_count": 0,
             "output_name": "-",
+            "output_path": "-",
             "download_url": None,
             "errors": [],
             "has_more_errors": False,
@@ -1162,47 +1246,23 @@ def extract():
         delay_seconds = 10.0
         backoff_max_seconds = 120.0
 
-    if accumulate:
-        workspace_id, batch_path, batch_count = _get_workspace_info()
-        if not workspace_id or not batch_path:
-            workspace_id = secrets.token_urlsafe(10)
-            batch_name = f"Resultados_Extraccion_lote_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{workspace_id}.xlsx"
-            batch_path = OUTPUT_DIR / batch_name
-            _WORKSPACES[workspace_id] = (batch_path, time.time(), 0)
-            session["workspace_id"] = workspace_id
-            batch_count = 0
+    final_path, errors = secop_extract.extract_batch_to_excel(
+        constancias,
+        OUTPUT_DIR,
+        headless=False,
+        delay_seconds=delay_seconds,
+        backoff_max_seconds=backoff_max_seconds,
+    )
+    download_url = None
 
-        final_path, errors, ok_added = secop_extract.append_batch_to_excel(
-            constancias,
-            batch_path,
-            headless=False,
-            delay_seconds=delay_seconds,
-            backoff_max_seconds=backoff_max_seconds,
-        )
-        batch_count = batch_count + ok_added
-        _WORKSPACES[workspace_id] = (final_path, time.time(), batch_count)
-        download_url = None
-    else:
-        final_path, errors = secop_extract.extract_batch_to_excel(
-            constancias,
-            OUTPUT_DIR,
-            headless=False,
-            delay_seconds=delay_seconds,
-            backoff_max_seconds=backoff_max_seconds,
-        )
-        download_url = None
-
-    if accumulate:
-        ok_count = ok_added
-    else:
-        ok_count = detected_count - len(errors)
+    ok_count = detected_count - len(errors)
     fail_count = len(errors)
 
     output_name = final_path.name
-    if not accumulate:
-        token = secrets.token_urlsafe(16)
-        _DOWNLOADS[token] = (final_path, time.time())
-        download_url = url_for("download", token=token)
+    output_path = str(final_path)
+    token = secrets.token_urlsafe(16)
+    _DOWNLOADS[token] = (final_path, time.time())
+    download_url = url_for("download", token=token)
     
     # Limitar errores mostrados en UI
     errors_safe = [(c, escape(str(e))) for c, e in errors]
@@ -1214,13 +1274,14 @@ def extract():
         "ok_count": ok_count,
         "fail_count": fail_count,
         "output_name": output_name,
+        "output_path": output_path,
         "download_url": download_url,
         "errors": errors_ui,
         "has_more_errors": has_more_errors,
         "total_errors": len(errors),
     }
     
-    return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate)
+    return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate, auto_download=True)
 
 
 @APP.post("/finalize")
@@ -1245,6 +1306,7 @@ def finalize():
         "ok_count": batch_count,
         "fail_count": 0,
         "output_name": batch_path.name,
+        "output_path": str(batch_path),
         "download_url": url_for("download", token=token),
         "errors": [],
         "has_more_errors": False,
