@@ -592,23 +592,24 @@ HTML = r"""
     }
 
     .stat-card {
-      background: rgba(255, 255, 255, 0.85);
-      border: 1px solid var(--border);
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
       border-radius: 12px;
       padding: 12px 14px;
       box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
     }
 
     .stat-label {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-bottom: 6px;
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 8px;
     }
 
     .stat-value {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 22px;
+      font-weight: 800;
       font-family: 'Space Grotesk', sans-serif;
+      color: #0f172a;
     }
 
     .download-row {

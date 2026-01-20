@@ -33,7 +33,6 @@ BLOCK_MARKERS = [
     "acceso bloqueado",
     "possible ddos",
     "denegacion",
-    "hic",
     "incident id",
 ]
 
@@ -458,6 +457,20 @@ def _is_blocked_html(html: str) -> bool:
     return any(marker in text for marker in BLOCK_MARKERS)
 
 
+def _dump_blocked_html(html: str, constancia: str) -> Optional[Path]:
+    """Guarda HTML bloqueado para diagnostico (best-effort)."""
+    try:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        safe_const = re.sub(r"[^0-9A-Za-z_-]+", "_", constancia or "constancia")
+        out_dir = Path(__file__).parent / "reports" / "blocked"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out_path = out_dir / f"blocked_{safe_const}_{ts}.html"
+        out_path.write_text(html or "", encoding="utf-8")
+        return out_path
+    except Exception:
+        return None
+
+
 def _fetch_detail_html_with_page(page, constancia: str, timeout_ms: int = 120_000) -> str:
     """
     Variante para reusar un page/contexto en lotes y evitar señales de automatizacion agresiva.
@@ -472,6 +485,7 @@ def _fetch_detail_html_with_page(page, constancia: str, timeout_ms: int = 120_00
     page.wait_for_timeout(1200)
     html = page.content()
     if _is_blocked_html(html):
+        _dump_blocked_html(html, constancia)
         raise SecopExtractionError(
             "Acceso bloqueado por el sitio (posible DDoS/WAF). Deteniendo el lote; esperar y/o contactar soporte."
         )
