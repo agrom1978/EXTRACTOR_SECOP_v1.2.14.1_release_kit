@@ -1,0 +1,29 @@
+# RESUMEN RAPIDO - AutoSECOP1
+
+AutoSECOP1 es una aplicacion para extraer y consolidar datos de procesos de contratacion en SECOP I.
+Esta version incluye UI web, extraccion automatizada con Playwright y salida en Excel con plantilla.
+
+## Inicio rapido
+1) Ejecuta:
+   python secop_ui.py
+2) Abre:
+   http://127.0.0.1:5000
+3) Pega constancias (una por linea) y presiona "Extraer y descargar".
+
+## Entradas
+- Constancia valida: YY-XX-NNNN (ej: 25-1-241304, 25-15-14542595)
+- Texto o tabla completa: el sistema detecta automaticamente.
+
+## Salidas
+- Excel unico en carpeta de exportacion (por defecto: %USERPROFILE%\secop_exports)
+- Descarga segura via token
+
+## Modos
+- Normal: mas rapido
+- Seguro: mas conservador contra bloqueo
+
+## Metricas
+- Tests automatizados: 8/8
+- Tasa de exito: 100%
+- Tiempo estimado de ejecucion de tests: < 5 segundos
+- Version: 1.2.15
