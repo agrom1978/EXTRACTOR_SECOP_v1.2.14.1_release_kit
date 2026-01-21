@@ -194,10 +194,29 @@ HTML = r"""
       --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
       --shadow-lg: 0 22px 40px rgba(15, 23, 42, 0.12);
       --ring: rgba(15, 118, 110, 0.2);
+      --gradient: linear-gradient(135deg, rgba(15, 118, 110, 0.12), rgba(245, 158, 11, 0.12));
     }
     
+    html[data-theme="dark"] {
+      --primary: #14b8a6;
+      --primary-dark: #0f766e;
+      --accent-1: #fbbf24;
+      --accent-2: #4ade80;
+      --accent-3: #fb923c;
+      --bg: #0b1214;
+      --bg-secondary: #11181b;
+      --surface: #0f1720;
+      --text: #e2e8f0;
+      --text-muted: #9aa4b2;
+      --border: #1f2937;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 18px 36px rgba(0, 0, 0, 0.5);
+      --ring: rgba(20, 184, 166, 0.25);
+      --gradient: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(251, 191, 36, 0.2));
+    }
+
     @media (prefers-color-scheme: dark) {
-      :root {
+      html:not([data-theme="light"]) {
         --primary: #14b8a6;
         --primary-dark: #0f766e;
         --accent-1: #fbbf24;
@@ -212,6 +231,7 @@ HTML = r"""
         --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
         --shadow-lg: 0 18px 36px rgba(0, 0, 0, 0.5);
         --ring: rgba(20, 184, 166, 0.25);
+        --gradient: linear-gradient(135deg, rgba(20, 184, 166, 0.2), rgba(251, 191, 36, 0.2));
       }
     }
     
@@ -270,14 +290,13 @@ HTML = r"""
     
     /* ============== HEADER ============== */
     .header {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
       align-items: center;
       margin-bottom: 32px;
       padding-bottom: 24px;
       border-bottom: 2px solid var(--border);
-      gap: 16px;
-      flex-wrap: wrap;
+      gap: 20px;
       position: relative;
       z-index: 1;
     }
@@ -286,15 +305,92 @@ HTML = r"""
       display: flex;
       align-items: center;
       gap: 16px;
-      flex: 1;
-      min-width: 250px;
+      min-width: 220px;
     }
     
     .logo-icon {
-      width: clamp(200px, 32vw, 360px);
+      width: clamp(160px, 24vw, 280px);
       height: auto;
       display: block;
       max-width: 100%;
+    }
+
+    .hero {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-title {
+      font-family: 'Space Grotesk', 'IBM Plex Sans', sans-serif;
+      font-size: clamp(22px, 2.6vw, 32px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+    }
+
+    .hero-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-self: end;
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .toggle-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--primary);
+      position: relative;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .theme-toggle[data-active="dark"] .toggle-dot {
+      transform: translateX(8px);
+      background: var(--accent-1);
     }
     
     @keyframes float {
@@ -333,7 +429,7 @@ HTML = r"""
     
     /* ============== CONTENEDOR PRINCIPAL ============== */
     .container {
-      max-width: 940px;
+      max-width: 1200px;
       margin: 0 auto;
       position: relative;
       z-index: 1;
@@ -351,6 +447,186 @@ HTML = r"""
     .card:hover {
       box-shadow: var(--shadow-lg);
       transform: translateY(-2px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .panel-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .preview-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow: auto;
+      padding-right: 6px;
+    }
+
+    .preview-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .preview-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(22, 163, 74, 0.1);
+      color: var(--success);
+    }
+
+    .preview-item.is-dup .preview-tag {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .preview-item.is-invalid .preview-tag {
+      background: rgba(220, 38, 38, 0.15);
+      color: var(--danger);
+    }
+
+    .preview-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 10px;
+    }
+
+    .stepper {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      font-size: 12px;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+    }
+
+    .step-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(15, 118, 110, 0.1);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .step.is-active {
+      border-color: var(--primary);
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    .step.is-complete .step-dot {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .result-chart {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: conic-gradient(var(--success) 0% 0%, var(--danger) 0% 100%);
+      display: grid;
+      place-items: center;
+      position: relative;
+      box-shadow: var(--shadow);
+      animation: popIn 0.35s ease;
+    }
+
+    .result-chart::after {
+      content: "";
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--surface);
+      position: absolute;
+    }
+
+    .chart-label {
+      position: relative;
+      z-index: 1;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .result-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .legend {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--success);
+    }
+
+    .legend-dot.fail {
+      background: var(--danger);
     }
     
     /* ============== FORMULARIO ============== */
@@ -596,7 +872,8 @@ HTML = r"""
       display: grid;
       gap: 18px;
       animation: fadeUp 0.35s ease;
-      background: linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.05));
+      background: var(--gradient);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
     }
 
     .status.success {
@@ -620,15 +897,56 @@ HTML = r"""
       text-align: center;
     }
 
-    .results-title {
+    .result-banner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(15, 118, 110, 0.2);
+      background: rgba(15, 118, 110, 0.1);
+    }
+
+    .status.warning .result-banner {
+      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .status.error .result-banner {
+      border-color: rgba(220, 38, 38, 0.35);
+      background: rgba(220, 38, 38, 0.12);
+    }
+
+    .result-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
       font-size: 18px;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--primary-dark);
+    }
+
+    .result-banner-title {
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .result-banner-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .results-title {
+      font-size: 20px;
+      font-weight: 700;
       margin-bottom: 6px;
       text-align: center;
     }
 
     .results-subtitle {
-      font-size: 13px;
+      font-size: 13.5px;
       color: var(--text-muted);
       text-align: center;
     }
@@ -663,8 +981,8 @@ HTML = r"""
     }
 
     .stat-card {
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px 14px;
       box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
@@ -673,7 +991,7 @@ HTML = r"""
 
     .stat-label {
       font-size: 13px;
-      color: #475569;
+      color: var(--text-muted);
       margin-bottom: 8px;
       text-align: center;
     }
@@ -681,7 +999,7 @@ HTML = r"""
     .stat-value {
       font-size: 22px;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--text);
       text-align: center;
     }
 
@@ -692,7 +1010,7 @@ HTML = r"""
       justify-content: space-between;
       align-items: center;
       border-top: 1px dashed rgba(15, 23, 42, 0.12);
-      background: linear-gradient(120deg, rgba(15, 118, 110, 0.08), rgba(245, 158, 11, 0.06));
+      background: var(--bg-secondary);
       border-radius: 12px;
       padding: 14px;
     }
@@ -717,6 +1035,17 @@ HTML = r"""
       gap: 8px;
     }
 
+    .download-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.03);
+    }
+
     .file-name {
       max-width: 520px;
       white-space: nowrap;
@@ -735,12 +1064,53 @@ HTML = r"""
       cursor: pointer;
     }
 
+    .download-status {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .download-status[data-state="ready"] {
+      color: var(--success);
+      border-color: rgba(22, 163, 74, 0.3);
+      background: rgba(22, 163, 74, 0.08);
+    }
+
+    .download-status[data-state="active"] {
+      color: var(--primary-dark);
+      border-color: rgba(15, 118, 110, 0.3);
+      background: rgba(15, 118, 110, 0.08);
+    }
+
     .download-actions {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
       align-items: center;
       justify-content: flex-end;
+    }
+
+    .download-link {
+      padding: 9px 14px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-1));
+      color: #fff;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      font-size: 12px;
+      box-shadow: 0 8px 16px rgba(15, 118, 110, 0.25);
+    }
+
+    .download-link:hover {
+      color: #fff;
+      text-decoration: none;
+      transform: translateY(-1px);
     }
 
     .hide-on-reset {
@@ -750,6 +1120,11 @@ HTML = r"""
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
     
     /* ============== TEXTO ============== */
@@ -898,6 +1273,37 @@ HTML = r"""
     }
     
     /* ============== LISTA DE ERRORES ============== */
+    .error-details {
+      border-radius: 10px;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.05);
+      padding: 8px 12px;
+    }
+
+    .error-details summary {
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 12px;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .error-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .error-details summary::after {
+      content: "+";
+      font-size: 14px;
+    }
+
+    .error-details[open] summary::after {
+      content: "–";
+    }
+
     .error-list {
       margin-top: 12px;
       max-height: 400px;
@@ -943,6 +1349,28 @@ HTML = r"""
       color: var(--text);
       font-weight: 700;
     }
+
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      font-size: 14px;
+      color: var(--text);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 10;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
     
     a {
       color: var(--primary);
@@ -957,6 +1385,12 @@ HTML = r"""
     }
     
     /* ============== RESPONSIVE ============== */
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 640px) {
       body {
         padding: 12px;
@@ -967,17 +1401,16 @@ HTML = r"""
       }
       
       .header {
-        flex-direction: column;
-        align-items: flex-start;
+        grid-template-columns: 1fr;
+        text-align: center;
       }
       
       .logo {
         width: 100%;
       }
       
-      .version-badge {
-        width: 100%;
-        text-align: center;
+      .header-actions {
+        justify-self: center;
       }
       
       button {
@@ -1000,36 +1433,92 @@ HTML = r"""
       .footer {
         flex-direction: column;
       }
+
+      .toast {
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+      }
     }
   </style>
 </head>
-<body>
+<body data-has-result="{% if result %}1{% else %}0{% endif %}">
   <div class="container">
     <header class="header">
       <div class="logo">
         <img class="logo-icon" src="/static/Logo_Extractor_2.png" alt="Logo AutoSECOP1" />
       </div>
-      
+      <div class="hero">
+        <div class="hero-title">AutoSECOP1 · Extracción inteligente</div>
+        <div class="hero-subtitle">Automatiza la consolidación de datos contractuales con trazabilidad y control.</div>
+        <div class="hero-badges">
+          <span class="hero-badge">Versión {{ version }}</span>
+          <span class="hero-badge">Procesamiento por lotes</span>
+          <span class="hero-badge">Seguridad anti-bloqueo</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" data-active="light">
+          <span class="toggle-dot"></span>
+          <span id="themeLabel">Modo claro</span>
+        </button>
+      </div>
     </header>
 
     <div class="card">
       <!-- PANEL DE RESULTADOS -->
       <div id="resultPanel" class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
-        <div class="results-head hide-on-reset">
+        {% set total = (result.ok_count + result.fail_count) if result else 0 %}
+        {% set ok_pct = (result.ok_count * 100 / total) if total else 0 %}
+        {% if result %}
+          <div class="result-banner hide-on-reset">
+            <span class="result-icon">
+              {% if result.ok_count > 0 and result.fail_count == 0 %}
+                ✅
+              {% elif result.ok_count > 0 and result.fail_count > 0 %}
+                ⚠️
+              {% else %}
+                ❌
+              {% endif %}
+            </span>
+            <div>
+              <div class="result-banner-title">
+                {% if result.ok_count > 0 and result.fail_count == 0 %}
+                  Extraccion completada
+                {% elif result.ok_count > 0 and result.fail_count > 0 %}
+                  Extraccion completada con advertencias
+                {% else %}
+                  Extraccion sin resultados
+                {% endif %}
+              </div>
+              <div class="result-banner-subtitle">Verifica el resumen y descarga el Excel consolidado.</div>
+            </div>
+          </div>
+        {% endif %}
+        <div class="results-head hide-on-reset result-top">
           <div>
             <div class="results-title">Resultados de extraccion</div>
             <div class="results-subtitle">Resumen del lote procesado en AutoSECOP1</div>
+            <div class="legend" style="margin-top: 10px;">
+              <span><span class="legend-dot"></span>Exitosas</span>
+              <span><span class="legend-dot fail"></span>Con error</span>
+            </div>
           </div>
-          <div class="status-pill">
-            {% if result and result.ok_count > 0 and result.fail_count == 0 %}
-              Completado sin errores
-            {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
-              Completado con advertencias
-            {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
-              No se pudo completar
-            {% else %}
-              Sin ejecucion
-            {% endif %}
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div class="result-chart" style="background: conic-gradient(var(--success) 0% {{ ok_pct }}%, var(--danger) {{ ok_pct }}% 100%);">
+              <span class="chart-label">{{ ok_pct|round(0) }}%</span>
+            </div>
+            <div class="status-pill">
+              {% if result and result.ok_count > 0 and result.fail_count == 0 %}
+                Completado sin errores
+              {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
+                Completado con advertencias
+              {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
+                No se pudo completar
+              {% else %}
+                Sin ejecucion
+              {% endif %}
+            </div>
           </div>
         </div>
         {% if result %}
@@ -1051,13 +1540,16 @@ HTML = r"""
             <div class="download-meta">
               <div class="download-label">Ruta del archivo</div>
               <div class="file-line">
-                <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
-                <button class="btn-copy" type="button" data-copy="{{ result.output_path }}">Copiar ruta</button>
+                <div class="download-box">
+                  <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
+                  <button class="btn-copy" type="button" data-copy="{{ result.output_path }}">Copiar ruta</button>
+                </div>
               </div>
+              <span id="downloadStatus" class="download-status" data-state="ready" aria-live="polite">Listo para descargar</span>
             </div>
             <div class="download-actions">
               {% if result.download_url %}
-                <a id="btnRedownload" href="{{ result.download_url }}" data-download="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
+                <a id="btnRedownload" class="download-link" href="{{ result.download_url }}" data-download="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
                   Descargar de nuevo
                 </a>
               {% endif %}
@@ -1065,19 +1557,21 @@ HTML = r"""
           </div>
           {% if result.fail_count > 0 %}
             <div class="hide-on-reset" style="margin-top: 6px;">
-              <strong class="small">Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
-              <div class="error-list small">
-                {% for c, e in result.errors %}
-                  <div class="error-item">
-                    <span class="mono">{{ c }}</span> - {{ e }}
-                  </div>
-                {% endfor %}
-              </div>
-              {% if result.has_more_errors %}
-                <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
-                  Se muestran {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
+              <details class="error-details" open>
+                <summary>Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %})</summary>
+                <div class="error-list small">
+                  {% for c, e in result.errors %}
+                    <div class="error-item">
+                      <span class="mono">{{ c }}</span> - {{ e }}
+                    </div>
+                  {% endfor %}
                 </div>
-              {% endif %}
+                {% if result.has_more_errors %}
+                  <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
+                    Se muestran {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
+                  </div>
+                {% endif %}
+              </details>
             </div>
           {% endif %}
         {% endif %}
@@ -1085,40 +1579,64 @@ HTML = r"""
 
       <!-- FORMULARIO PRINCIPAL -->
       <form id="form" method="post" action="{{ url_for('extract') }}">
+        <div class="stepper" id="stepper">
+          <div class="step is-active" data-step="input">
+            <span class="step-dot">1</span>
+            Entrada
+          </div>
+          <div class="step" data-step="processing">
+            <span class="step-dot">2</span>
+            Procesamiento
+          </div>
+          <div class="step" data-step="results">
+            <span class="step-dot">3</span>
+            Resultados
+          </div>
+        </div>
         <div class="field-block">
           <label for="raw" class="section-title">Constancias a procesar</label>
           <div class="section-subtitle">Pega constancias o una tabla; el sistema detecta automaticamente.</div>
         </div>
-        <textarea 
-          id="raw" 
-          name="raw" 
-          placeholder="Ingresa constancias (una por linea):
+        <div class="layout">
+          <div>
+            <textarea 
+              id="raw" 
+              name="raw" 
+              placeholder="Ingresa constancias (una por linea):
 25-11-14555665
 25-15-14581710
 
 O pega una tabla completa: el sistema detecta automaticamente"
-        >{{ raw or '' }}</textarea>
+            >{{ raw or '' }}</textarea>
 
-        <div class="input-hint">
-          <span id="preinfo-valid" class="badge badge-success badge-strong" style="display: none;"></span>
-          <span id="preinfo-dup" class="badge badge-warning badge-strong" style="display: none;"></span>
-          <span id="preinfo-invalid" class="badge badge-danger badge-strong" style="display: none;"></span>
-        </div>
+            <div class="input-hint">
+              <span id="preinfo-valid" class="badge badge-success badge-strong" style="display: none;"></span>
+              <span id="preinfo-dup" class="badge badge-warning badge-strong" style="display: none;"></span>
+              <span id="preinfo-invalid" class="badge badge-danger badge-strong" style="display: none;"></span>
+            </div>
 
-        <div class="row" style="margin-top: 16px;">
-          <label for="mode" class="field-label chip-label">Modo de extraccion</label>
-          <select id="mode" name="mode" class="select">
-            <option value="normal" {% if mode == "normal" %}selected{% endif %}>Normal (mas rapido)</option>
-            <option value="seguro" {% if mode == "seguro" %}selected{% endif %}>Seguro (anti-bloqueo)</option>
-          </select>
-        </div>
+            <div class="row" style="margin-top: 16px;">
+              <label for="mode" class="field-label chip-label">Modo de extraccion</label>
+              <select id="mode" name="mode" class="select">
+                <option value="normal" {% if mode == "normal" %}selected{% endif %}>Normal (mas rapido)</option>
+                <option value="seguro" {% if mode == "seguro" %}selected{% endif %}>Seguro (anti-bloqueo)</option>
+              </select>
+            </div>
 
-        <div class="row action-row">
-          <button id="btnExtract" type="submit">
-            <span id="btnIcon">&gt;</span>
-            <span id="btnText">Extraer y descargar</span>
-          </button>
-          <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
+            <div class="row action-row">
+              <button id="btnExtract" type="submit">
+                <span id="btnIcon">&gt;</span>
+                <span id="btnText">Extraer y descargar</span>
+              </button>
+              <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
+            </div>
+          </div>
+          <aside class="panel">
+            <div class="panel-title">Vista previa en vivo</div>
+            <div class="panel-subtitle">Revisa duplicados y constancias antes de extraer.</div>
+            <div class="preview-list" id="previewList"></div>
+            <div class="preview-meta" id="previewMeta">0 constancias detectadas</div>
+          </aside>
         </div>
 
         <!-- PROGRESO (Oculto hasta submit) -->
@@ -1159,6 +1677,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
 
     </div>
   </div>
+
+  <div id="toast" class="toast">Accion completada</div>
 
   <script>
     const CONSTANCIA_RE = /\b(\d{2}-\d{1,2}-\d{4,12})\b/g;
@@ -1225,6 +1745,71 @@ O pega una tabla completa: el sistema detecta automaticamente"
     const preinfoDup = document.getElementById("preinfo-dup");
     const preinfoInvalid = document.getElementById("preinfo-invalid");
     const raw = document.getElementById("raw");
+    const previewList = document.getElementById("previewList");
+    const previewMeta = document.getElementById("previewMeta");
+    const toast = document.getElementById("toast");
+    const stepper = document.getElementById("stepper");
+    const downloadStatus = document.getElementById("downloadStatus");
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1600);
+    }
+
+    function setDownloadStatus(message, state) {
+      if (!downloadStatus) return;
+      downloadStatus.textContent = message;
+      if (state) {
+        downloadStatus.setAttribute("data-state", state);
+      }
+    }
+
+    function setStep(stepName) {
+      if (!stepper) return;
+      stepper.querySelectorAll(".step").forEach((step) => {
+        const name = step.getAttribute("data-step");
+        step.classList.remove("is-active", "is-complete");
+        if (name === stepName) {
+          step.classList.add("is-active");
+        }
+        if ((stepName === "processing" && name === "input") || (stepName === "results" && name !== "results")) {
+          step.classList.add("is-complete");
+        }
+      });
+    }
+
+    function renderPreview() {
+      const t = normalizeText(raw.value);
+      const matches = t.match(CONSTANCIA_RE) || [];
+      const counts = {};
+      matches.forEach((entry) => {
+        const key = entry.replace(/\s+/g, "");
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      const uniques = Object.keys(counts);
+      previewList.innerHTML = "";
+      if (uniques.length === 0) {
+        previewList.innerHTML = "<div class=\"preview-item\"><span class=\"mono\">Sin constancias detectadas</span><span class=\"preview-tag\">Espera</span></div>";
+      } else {
+        uniques.slice(0, 12).forEach((value) => {
+          const item = document.createElement("div");
+          item.className = "preview-item" + (counts[value] > 1 ? " is-dup" : "");
+          item.innerHTML = `<span class="mono">${value}</span><span class="preview-tag">${counts[value] > 1 ? "Duplicada" : "Valida"}</span>`;
+          previewList.appendChild(item);
+        });
+        if (uniques.length > 12) {
+          const more = document.createElement("div");
+          more.className = "preview-item";
+          more.innerHTML = `<span class="mono">+${uniques.length - 12} mas</span><span class="preview-tag">Lista parcial</span>`;
+          previewList.appendChild(more);
+        }
+      }
+      const invalid = countInvalidTokens(t);
+      previewMeta.textContent = `${uniques.length} constancias detectadas · ${invalid} invalidas`;
+    }
     
     function updatePreinfo(){
       const stats = detectStats();
@@ -1246,6 +1831,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       } else {
         preinfoInvalid.style.display = "none";
       }
+      renderPreview();
     }
     
     raw.addEventListener("input", updatePreinfo);
@@ -1263,6 +1849,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
       raw.value = "";
       updatePreinfo();
       document.getElementById("btnIcon").textContent = ">";
+      setStep("input");
+      setDownloadStatus("Listo para descargar", "ready");
     }
 
     function triggerDownload(url) {
@@ -1282,6 +1870,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
           await navigator.clipboard.writeText(text);
           btn.textContent = "Copiado";
           setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
+          showToast("Ruta copiada al portapapeles");
+          setDownloadStatus("Ruta copiada", "active");
         } catch (e) {
           const temp = document.createElement("textarea");
           temp.value = text;
@@ -1291,6 +1881,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
           document.body.removeChild(temp);
           btn.textContent = "Copiado";
           setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
+          showToast("Ruta copiada al portapapeles");
+          setDownloadStatus("Ruta copiada", "active");
         }
       });
     });
@@ -1305,6 +1897,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
           window.setTimeout(() => {
             resetFormAfterDownload();
           }, 800);
+          showToast("Descarga iniciada");
+          setDownloadStatus("Descarga en curso", "active");
         }
       });
     }
@@ -1321,6 +1915,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
       document.getElementById("btnIcon").textContent = ">";
       document.getElementById("btnText").textContent = "Extraer y descargar";
       raw.focus();
+      setStep("input");
+      setDownloadStatus("Listo para descargar", "ready");
     });
 
     document.getElementById("form").addEventListener("submit", (e) => {
@@ -1339,6 +1935,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       document.getElementById("btnText").textContent = "Procesando...";
       document.getElementById("runtime").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
+      setStep("processing");
       
       let progress = 0;
       const interval = setInterval(() => {
@@ -1348,6 +1945,29 @@ O pega una tabla completa: el sistema detecta automaticamente"
       }, 500);
       
       window.addEventListener("beforeunload", () => clearInterval(interval));
+    });
+
+    if (document.body.getAttribute("data-has-result") === "1") {
+      setStep("results");
+      setDownloadStatus("Listo para descargar", "ready");
+    }
+
+    const themeToggle = document.getElementById("themeToggle");
+    const themeLabel = document.getElementById("themeLabel");
+    const savedTheme = localStorage.getItem("secop-theme");
+    if (savedTheme) {
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      themeToggle.setAttribute("data-active", savedTheme);
+      themeLabel.textContent = savedTheme === "dark" ? "Modo oscuro" : "Modo claro";
+    }
+
+    themeToggle.addEventListener("click", () => {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      themeToggle.setAttribute("data-active", next);
+      themeLabel.textContent = next === "dark" ? "Modo oscuro" : "Modo claro";
+      localStorage.setItem("secop-theme", next);
     });
 
     {% if result and result.download_url and auto_download %}
