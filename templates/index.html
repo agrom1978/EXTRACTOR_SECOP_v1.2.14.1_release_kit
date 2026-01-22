@@ -1,0 +1,224 @@
+
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+  <title>AutoSECOP1 - Sistema de Extraccion y Consolidacion de Datos Contractuales V1.215 Estable</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' font-weight='bold' fill='%230ea5e9'>SECOP</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ui.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="brand">
+        <img class="logo-icon" src="{{ url_for('static', filename='Logo_Extractor_2.png') }}" alt="Logo AutoSECOP1" />
+        <div class="brand-copy">
+          <h1>AutoSECOP1 - Extraccion inteligente</h1>
+          <div class="tagline">Automatiza la consolidacion de datos contractuales con trazabilidad y control.</div>
+          <div class="header-chips">
+            <span class="header-chip">Version {{ version }}</span>
+            <span class="header-chip">Procesamiento por lotes</span>
+            <span class="header-chip">Seguridad anti-bloqueo</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">
+          <span id="themeIndicator" class="theme-indicator" aria-hidden="true"></span>
+          <span id="themeLabel">Modo claro</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="stage-tracker">
+        <div class="stage-chip" data-stage="1"><span class="chip-number">1</span>Entrada</div>
+        <div class="stage-chip" data-stage="2"><span class="chip-number">2</span>Procesamiento</div>
+        <div class="stage-chip" data-stage="3"><span class="chip-number">3</span>Resultados</div>
+      </div>
+      <!-- PANEL DE RESULTADOS -->
+      <div id="resultPanel" data-has-result="{% if result %}1{% else %}0{% endif %}" class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
+        <div class="results-head hide-on-reset">
+          <div>
+            <div class="results-title">Resultados de extraccion</div>
+            <div class="results-subtitle">Resumen del lote procesado en AutoSECOP1</div>
+          </div>
+          <div class="status-pill">
+            {% if result and result.ok_count > 0 and result.fail_count == 0 %}
+              Completado sin errores
+            {% elif result and result.ok_count > 0 and result.fail_count > 0 %}
+              Completado con advertencias
+            {% elif result and result.ok_count == 0 and result.fail_count > 0 %}
+              No se pudo completar
+            {% else %}
+              Sin ejecucion
+            {% endif %}
+          </div>
+        </div>
+        {% if result %}
+          <div class="stats">
+            <div class="stat-card">
+              <div class="stat-label">Constancias detectadas</div>
+              <div class="stat-value">{{ result.detected_count }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Procesadas con exito</div>
+              <div class="stat-value">{{ result.ok_count }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Con errores</div>
+              <div class="stat-value">{{ result.fail_count }}</div>
+            </div>
+          </div>
+          <div class="download-row hide-on-reset">
+          <div class="download-meta">
+            <div class="download-label">Ruta del archivo</div>
+            <div class="file-line">
+              <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
+              <div class="path-actions">
+                <button class="btn-path" type="button" data-open-folder="{{ result.output_path }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 7h5l2 2h11v8a2 2 0 0 1-2 2H3z"></path>
+                    <path d="M3 7v10a2 2 0 0 0 2 2h14"></path>
+                  </svg>
+                  Ver en carpeta
+                </button>
+                <button class="btn-path" type="button" data-open-file="{{ result.output_path }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                    <path d="M14 3v5h5"></path>
+                    <path d="M9 13h6"></path>
+                    <path d="M9 17h6"></path>
+                  </svg>
+                  Abrir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+          {% if result.fail_count > 0 %}
+            <div class="hide-on-reset" style="margin-top: 6px;">
+              <strong class="small">Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
+              <div class="error-list small">
+                {% for c, e in result.errors %}
+                  <div class="error-item">
+                    <span class="mono">{{ c }}</span> - {{ e }}
+                  </div>
+                {% endfor %}
+              </div>
+              {% if result.has_more_errors %}
+                <div class="small warn" style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 6px;">
+                  Se muestran {{ result.errors|length }} de {{ result.total_errors }} errores. Revisa la hoja <span class="mono">Errores</span> en el Excel para la lista completa.
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+
+      <!-- FORMULARIO PRINCIPAL -->
+      <form id="form" method="post" action="{{ url_for('extract') }}">
+        <div class="input-header">
+          <div class="field-block">
+            <label for="raw" class="section-title">Constancias a procesar</label>
+            <div class="section-subtitle">Pega constancias o una tabla; el sistema detecta automaticamente.</div>
+          </div>
+          <div>
+            <div class="validation-title">Validacion en vivo</div>
+            <div class="validation-subtitle">Constancias registradas</div>
+          </div>
+        </div>
+        <div class="input-split">
+          <div class="input-panel">
+            <textarea 
+              id="raw" 
+              name="raw" 
+              placeholder="Ingresa constancias (una por linea):
+25-11-14555665
+25-15-14581710
+
+O pega una tabla completa: el sistema detecta automaticamente"
+            >{{ raw or '' }}</textarea>
+
+          </div>
+
+          <div class="validation-panel">
+            <div id="validationList" class="validation-list">
+              <div class="validation-empty">Sin datos para validar.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 16px;">
+          <label for="mode" class="field-label chip-label">Modo de extraccion</label>
+          <select id="mode" name="mode" class="select">
+            <option value="normal" {% if mode == "normal" %}selected{% endif %}>Normal (mas rapido)</option>
+            <option value="seguro" {% if mode == "seguro" %}selected{% endif %}>Seguro (anti-bloqueo)</option>
+          </select>
+        </div>
+
+        <div class="row action-row">
+          <button id="btnExtract" type="submit">
+            <span id="btnIcon">&gt;</span>
+            <span id="btnText">Procesar</span>
+          </button>
+          <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
+        </div>
+
+        <!-- PROGRESO (Oculto hasta submit) -->
+        <div id="progressContainer" class="progress-container" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <p class="progress-text" id="progressText">Iniciando extraccion...</p>
+        </div>
+
+        <!-- MENSAJES DE PROCESAMIENTO -->
+        <div id="runtime" class="hint" style="display:none;">
+          <strong>Procesando constancias</strong>
+          - Se abrira un navegador por cada constancia<br/>
+          - Resuelve manualmente reCAPTCHA si aparece<br/>
+          - La salida se guarda en un unico Excel: <span class="mono">Resultados_Extraccion</span>
+        </div>
+
+        <!-- INSTRUCCIONES PERMANENTES -->
+        <details class="hint hint-collapsible">
+          <summary>Guia rapida</summary>
+          <div class="hint-body">
+            <ol>
+              <li>Ingresa constancias (una por linea o tabla completa)</li>
+              <li>Haz clic en "Procesar" para iniciar el proceso</li>
+              <li>Se abrira un navegador por cada constancia</li>
+              <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
+              <li>Al finalizar, aparece un popup para elegir si deseas descargar el archivo</li>
+            </ol>
+          </div>
+        </details>
+
+        <div class="footer">
+          <div>Salida: <span class="mono">Resultados_Extraccion</span> (Excel unico)</div>
+          <div class="footer-credit">Created by <strong>AGROM1978</strong><br/>Soluciones digitales con precision y trazabilidad</div>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <div id="downloadModal" class="modal" data-download="{% if result and result.download_url and result.ok_count > 0 and result.fail_count == 0 %}{{ result.download_url }}{% endif %}">
+    <div class="modal-card">
+      <div class="modal-title">Proceso finalizado</div>
+      <div class="modal-body">El proceso fue exitoso. ¿Deseas descargar el archivo ahora?</div>
+      <div class="modal-actions">
+        <button id="modalClose" class="btn-secondary" type="button">Cerrar</button>
+        <button id="modalDownload" class="btn-primary" type="button">Descargar</button>
+      </div>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+</body>
+</html>
