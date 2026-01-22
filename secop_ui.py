@@ -6,7 +6,7 @@ Proporciona:
 - Interfaz HTML simple para ingresar constancias
 - Deteccion automatica de constancias en texto pegado
 - Procesamiento secuencial con manejo de reCAPTCHA
-- Empaquetado automatico de resultados en ZIP
+- Generacion automatica de resultados
 - Descargas seguras con tokens aleatorios
 """
 
@@ -16,12 +16,18 @@ import os
 import secrets
 import logging
 import time
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Tuple, Dict, Optional
 from html import escape
 
 from flask import Flask, request, send_file, render_template, url_for, redirect, after_this_request, session, jsonify
+
+BASE_DIR = Path(__file__).resolve().parent
+SCRIPTS_DIR = BASE_DIR / "scripts"
+if SCRIPTS_DIR.exists():
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import secop_extract
 import constancia_config
@@ -375,7 +381,7 @@ def download(token: str):
     - token: token aleatorio unico asignado en /extract
     
     Retorna:
-    - Archivo (XLSX o ZIP) si existe y es valido
+    - Archivo (XLSX) si existe y es valido
     - Redireccion a indice si no existe
     """
     # Limpiar descargas antiguas

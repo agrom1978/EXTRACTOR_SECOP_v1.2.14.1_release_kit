@@ -5,6 +5,10 @@
       --accent-1: #f59e0b;
       --accent-2: #22c55e;
       --accent-3: #ea580c;
+      --frame-accent: #22c55e;
+      --frame-ring: rgba(34, 197, 94, 0.18);
+      --frame-ring-mid: rgba(34, 197, 94, 0.22);
+      --frame-ring-strong: rgba(34, 197, 94, 0.45);
       --success: #16a34a;
       --warning: #f59e0b;
       --danger: #dc2626;
@@ -26,6 +30,10 @@
         --accent-1: #fbbf24;
         --accent-2: #4ade80;
         --accent-3: #fb923c;
+        --frame-accent: #4ade80;
+        --frame-ring: rgba(74, 222, 128, 0.22);
+        --frame-ring-mid: rgba(74, 222, 128, 0.28);
+        --frame-ring-strong: rgba(74, 222, 128, 0.5);
         --bg: #0b1214;
         --bg-secondary: #11181b;
         --surface: #0f1720;
@@ -44,6 +52,10 @@
       --accent-1: #f59e0b;
       --accent-2: #22c55e;
       --accent-3: #ea580c;
+      --frame-accent: #22c55e;
+      --frame-ring: rgba(34, 197, 94, 0.18);
+      --frame-ring-mid: rgba(34, 197, 94, 0.22);
+      --frame-ring-strong: rgba(34, 197, 94, 0.45);
       --success: #16a34a;
       --warning: #f59e0b;
       --danger: #dc2626;
@@ -64,6 +76,10 @@
       --accent-1: #fbbf24;
       --accent-2: #4ade80;
       --accent-3: #fb923c;
+      --frame-accent: #4ade80;
+      --frame-ring: rgba(74, 222, 128, 0.22);
+      --frame-ring-mid: rgba(74, 222, 128, 0.28);
+      --frame-ring-strong: rgba(74, 222, 128, 0.5);
       --success: #22c55e;
       --warning: #fbbf24;
       --danger: #f87171;
@@ -169,6 +185,18 @@
     @keyframes float {
       0%, 100% { transform: translateY(0px); }
       50% { transform: translateY(-8px); }
+    }
+
+    @keyframes validationPulse {
+      0% {
+        box-shadow: 0 0 0 0 var(--frame-ring-strong), var(--shadow);
+      }
+      70% {
+        box-shadow: 0 0 0 8px var(--frame-ring-mid), var(--shadow);
+      }
+      100% {
+        box-shadow: 0 0 0 3px var(--frame-ring), var(--shadow);
+      }
     }
     
     .brand-copy h1 {
@@ -401,7 +429,7 @@
       width: 100%;
       min-height: 200px;
       padding: 16px;
-      border: 2px solid var(--border);
+      border: 1px solid var(--border);
       border-radius: 12px;
       font-family: inherit;
       font-size: 14px;
@@ -413,8 +441,8 @@
     
     textarea:focus {
       outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px var(--ring);
+      border-color: var(--frame-accent);
+      box-shadow: 0 0 0 3px var(--frame-ring);
       background: var(--bg);
     }
     
@@ -446,6 +474,24 @@
       max-height: 260px;
       display: flex;
       flex-direction: column;
+    }
+
+    .validation-panel.is-active {
+      border-color: var(--frame-accent);
+      box-shadow: 0 0 0 3px var(--frame-ring), var(--shadow);
+    }
+
+    .validation-panel.is-flash {
+      animation: validationPulse 0.8s ease;
+    }
+
+    .input-panel.is-active textarea {
+      border-color: var(--frame-accent);
+      box-shadow: 0 0 0 3px var(--frame-ring);
+    }
+
+    .input-panel.is-flash textarea {
+      animation: validationPulse 0.8s ease;
     }
 
     .input-header {

@@ -28,6 +28,9 @@
     const validationList = document.getElementById("validationList");
     const raw = document.getElementById("raw");
     const stageChips = document.querySelectorAll(".stage-chip");
+    const validationPanel = document.querySelector(".validation-panel");
+    const inputPanel = document.querySelector(".input-panel");
+    let hadConstancias = false;
 
     function setStage(stage) {
       stageChips.forEach((chip) => {
@@ -68,12 +71,38 @@
       const items = buildValidationItems(raw.value);
       validationList.innerHTML = "";
       if (items.length === 0) {
+        if (validationPanel) {
+          validationPanel.classList.remove("is-active", "is-flash");
+        }
+        if (inputPanel) {
+          inputPanel.classList.remove("is-active", "is-flash");
+        }
+        hadConstancias = false;
         const empty = document.createElement("div");
         empty.className = "validation-empty";
         empty.textContent = "Sin datos para validar.";
         validationList.appendChild(empty);
         return;
       }
+      if (validationPanel) {
+        validationPanel.classList.add("is-active");
+        if (!hadConstancias) {
+          validationPanel.classList.add("is-flash");
+          window.setTimeout(() => {
+            validationPanel.classList.remove("is-flash");
+          }, 800);
+        }
+      }
+      if (inputPanel) {
+        inputPanel.classList.add("is-active");
+        if (!hadConstancias) {
+          inputPanel.classList.add("is-flash");
+          window.setTimeout(() => {
+            inputPanel.classList.remove("is-flash");
+          }, 800);
+        }
+      }
+      hadConstancias = true;
       for (const item of items) {
         const row = document.createElement("div");
         row.className = `validation-item status-${item.status}`;

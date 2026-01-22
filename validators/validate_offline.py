@@ -3,6 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
 import json
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SCRIPTS_DIR = ROOT_DIR / "scripts"
+if SCRIPTS_DIR.exists():
+    sys.path.insert(0, str(SCRIPTS_DIR))
 
 import secop_extract
 
