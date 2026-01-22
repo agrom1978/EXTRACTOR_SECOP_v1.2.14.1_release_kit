@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Tuple, Dict, Optional
 from html import escape
 
-from flask import Flask, request, send_file, render_template_string, url_for, redirect, after_this_request, session
+from flask import Flask, request, send_file, render_template_string, url_for, redirect, after_this_request, session, jsonify
 
 import secop_extract
 import constancia_config
@@ -159,6 +159,19 @@ def _render_main(raw: str, result: Optional[dict], mode: str, accumulate: bool, 
     )
 
 
+def _resolve_output_path(path_value: str) -> Tuple[Optional[Path], Optional[str]]:
+    if not path_value:
+        return None, "Ruta vacia."
+    try:
+        resolved = Path(path_value).expanduser().resolve()
+    except Exception:
+        return None, "Ruta invalida."
+    output_root = OUTPUT_DIR.resolve()
+    if resolved != output_root and output_root not in resolved.parents:
+        return None, "Ruta fuera del directorio permitido."
+    return resolved, None
+
+
 # ============================================================================
 # PLANTILLA HTML - VERSION MEJORADA CON DISENO MODERNO
 # ============================================================================
@@ -213,6 +226,46 @@ HTML = r"""
         --shadow-lg: 0 18px 36px rgba(0, 0, 0, 0.5);
         --ring: rgba(20, 184, 166, 0.25);
       }
+    }
+
+    html[data-theme="light"] {
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --accent-1: #f59e0b;
+      --accent-2: #22c55e;
+      --accent-3: #ea580c;
+      --success: #16a34a;
+      --warning: #f59e0b;
+      --danger: #dc2626;
+      --bg: #f4f7f6;
+      --bg-secondary: #ffffff;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --text-muted: #5b6472;
+      --border: #e3e8ef;
+      --shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+      --shadow-lg: 0 22px 40px rgba(15, 23, 42, 0.12);
+      --ring: rgba(15, 118, 110, 0.2);
+    }
+
+    html[data-theme="dark"] {
+      --primary: #14b8a6;
+      --primary-dark: #0f766e;
+      --accent-1: #fbbf24;
+      --accent-2: #4ade80;
+      --accent-3: #fb923c;
+      --success: #22c55e;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --bg: #0b1214;
+      --bg-secondary: #11181b;
+      --surface: #0f1720;
+      --text: #e2e8f0;
+      --text-muted: #9aa4b2;
+      --border: #1f2937;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 18px 36px rgba(0, 0, 0, 0.5);
+      --ring: rgba(20, 184, 166, 0.25);
     }
     
     /* ============== RESET Y BASE ============== */
@@ -271,27 +324,33 @@ HTML = r"""
     /* ============== HEADER ============== */
     .header {
       display: flex;
-      justify-content: space-between;
+      justify-content: center;
       align-items: center;
-      margin-bottom: 32px;
-      padding-bottom: 24px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
       border-bottom: 2px solid var(--border);
-      gap: 16px;
+      gap: 24px;
       flex-wrap: wrap;
       position: relative;
       z-index: 1;
     }
     
-    .logo {
+    .brand {
       display: flex;
       align-items: center;
-      gap: 16px;
+      justify-content: center;
+      gap: 20px;
       flex: 1;
       min-width: 250px;
     }
+
+    .brand-copy {
+      text-align: center;
+    }
     
     .logo-icon {
-      width: clamp(200px, 32vw, 360px);
+      width: auto;
+      max-height: 140px;
       height: auto;
       display: block;
       max-width: 100%;
@@ -302,7 +361,7 @@ HTML = r"""
       50% { transform: translateY(-8px); }
     }
     
-    .logo-text h1 {
+    .brand-copy h1 {
       font-size: 26px;
       font-weight: 700;
       margin: 0;
@@ -311,6 +370,7 @@ HTML = r"""
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      white-space: nowrap;
     }
     
     .tagline {
@@ -318,17 +378,68 @@ HTML = r"""
       color: var(--text-muted);
       margin-top: 4px;
       font-weight: 500;
+      text-align: justify;
     }
-    
-    .version-badge {
-      background: linear-gradient(135deg, var(--accent-3), var(--primary));
-      color: white;
-      padding: 8px 14px;
-      border-radius: 20px;
+
+    .header-chips {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .header-chip {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 999px;
       font-size: 12px;
       font-weight: 600;
       white-space: nowrap;
-      box-shadow: 0 8px 18px rgba(234, 88, 12, 0.35);
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 180px;
+    }
+
+    .theme-toggle {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.12);
+      border-color: var(--primary);
+    }
+
+    .theme-indicator {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.6);
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    html[data-theme="dark"] .theme-indicator {
+      background: var(--accent-1);
+      transform: translateX(2px);
     }
     
     /* ============== CONTENEDOR PRINCIPAL ============== */
@@ -351,6 +462,102 @@ HTML = r"""
     .card:hover {
       box-shadow: var(--shadow-lg);
       transform: translateY(-2px);
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 23, 42, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 50;
+    }
+
+    .modal.is-open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: min(420px, 90vw);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .modal-body {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent-1));
+      color: white;
+      box-shadow: 0 10px 20px rgba(15, 118, 110, 0.35);
+    }
+
+    .stage-tracker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .stage-chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stage-chip.active {
+      color: var(--primary-dark);
+      border-color: rgba(15, 118, 110, 0.7);
+      box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    .stage-chip .chip-number {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ffffff;
+      background: var(--primary);
+    }
+
+    .stage-chip.active .chip-number {
+      background: var(--accent-1);
     }
     
     /* ============== FORMULARIO ============== */
@@ -405,69 +612,114 @@ HTML = r"""
       color: var(--text-muted);
       opacity: 0.7;
     }
-    
-    /* ============== INPUTS ============== */
-    .input-hint {
-      margin-top: 12px;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      border: 1px solid transparent;
-      animation: slideIn 0.3s ease;
+
+    .input-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+      gap: 18px;
+      align-items: stretch;
     }
 
-    .badge-strong {
-      font-size: 12.5px;
-      padding: 7px 14px;
-      letter-spacing: 0.2px;
+    .input-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
-    
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-5px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+
+    .validation-panel {
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+      min-height: 200px;
+      max-height: 260px;
+      display: flex;
+      flex-direction: column;
     }
-    
-    .badge-info {
-      background: rgba(15, 118, 110, 0.12);
-      color: var(--primary-dark);
-      border-color: rgba(15, 118, 110, 0.25);
+
+    .input-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 8px;
     }
-    
-    .badge-success {
+
+    .validation-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .validation-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .validation-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .validation-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .validation-value {
+      font-weight: 600;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .validation-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    .status-valid .validation-badge {
       background: rgba(22, 163, 74, 0.12);
       color: var(--success);
-      border-color: rgba(22, 163, 74, 0.25);
-    }
-    
-    .badge-warning {
-      background: rgba(245, 158, 11, 0.14);
-      color: #b45309;
-      border-color: rgba(245, 158, 11, 0.3);
+      border: 1px solid rgba(22, 163, 74, 0.25);
     }
 
-    .badge-danger {
+    .status-dup .validation-badge {
+      background: rgba(245, 158, 11, 0.14);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-invalid .validation-badge {
       background: rgba(220, 38, 38, 0.12);
       color: var(--danger);
-      border-color: rgba(220, 38, 38, 0.28);
+      border: 1px solid rgba(220, 38, 38, 0.28);
+    }
+
+    .validation-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 12px 8px;
+      text-align: center;
     }
     
+    /* ============== INPUTS ============== */
     /* ============== BOTONES ============== */
     .row {
       display: flex;
@@ -718,13 +970,20 @@ HTML = r"""
     }
 
     .file-name {
-      max-width: 520px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      font-size: 11px;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-all;
     }
 
-    .btn-copy {
+    .path-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-path {
       border: 1px solid rgba(15, 118, 110, 0.28);
       background: rgba(255, 255, 255, 0.85);
       color: var(--primary-dark);
@@ -733,14 +992,19 @@ HTML = r"""
       border-radius: 999px;
       font-weight: 600;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    .download-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      justify-content: flex-end;
+    .btn-path svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    .btn-path:hover {
+      border-color: var(--primary);
+      color: var(--primary);
     }
 
     .hide-on-reset {
@@ -971,22 +1235,32 @@ HTML = r"""
         align-items: flex-start;
       }
       
-      .logo {
+      .brand {
         width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
       }
-      
-      .version-badge {
+
+      .header-actions {
         width: 100%;
-        text-align: center;
+        justify-content: flex-start;
       }
-      
-      button {
+
+      .theme-toggle {
         width: 100%;
         justify-content: center;
       }
 
       textarea {
         min-height: 150px;
+      }
+
+      .input-split {
+        grid-template-columns: 1fr;
+      }
+
+      .input-header {
+        grid-template-columns: 1fr;
       }
       
       .row {
@@ -1006,15 +1280,34 @@ HTML = r"""
 <body>
   <div class="container">
     <header class="header">
-      <div class="logo">
+      <div class="brand">
         <img class="logo-icon" src="/static/Logo_Extractor_2.png" alt="Logo AutoSECOP1" />
+        <div class="brand-copy">
+          <h1>AutoSECOP1 - Extraccion inteligente</h1>
+          <div class="tagline">Automatiza la consolidacion de datos contractuales con trazabilidad y control.</div>
+          <div class="header-chips">
+            <span class="header-chip">Version {{ version }}</span>
+            <span class="header-chip">Procesamiento por lotes</span>
+            <span class="header-chip">Seguridad anti-bloqueo</span>
+          </div>
+        </div>
       </div>
-      
+      <div class="header-actions">
+        <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false">
+          <span id="themeIndicator" class="theme-indicator" aria-hidden="true"></span>
+          <span id="themeLabel">Modo claro</span>
+        </button>
+      </div>
     </header>
 
     <div class="card">
+      <div class="stage-tracker">
+        <div class="stage-chip" data-stage="1"><span class="chip-number">1</span>Entrada</div>
+        <div class="stage-chip" data-stage="2"><span class="chip-number">2</span>Procesamiento</div>
+        <div class="stage-chip" data-stage="3"><span class="chip-number">3</span>Resultados</div>
+      </div>
       <!-- PANEL DE RESULTADOS -->
-      <div id="resultPanel" class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
+      <div id="resultPanel" data-has-result="{% if result %}1{% else %}0{% endif %}" class="status {% if result %}{% if result.ok_count > 0 and result.fail_count == 0 %}success{% elif result.ok_count > 0 and result.fail_count > 0 %}warning{% else %}error{% endif %}{% endif %}" style="display:{% if result %}block{% else %}none{% endif %};">
         <div class="results-head hide-on-reset">
           <div>
             <div class="results-title">Resultados de extraccion</div>
@@ -1048,21 +1341,31 @@ HTML = r"""
             </div>
           </div>
           <div class="download-row hide-on-reset">
-            <div class="download-meta">
-              <div class="download-label">Ruta del archivo</div>
-              <div class="file-line">
-                <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
-                <button class="btn-copy" type="button" data-copy="{{ result.output_path }}">Copiar ruta</button>
+          <div class="download-meta">
+            <div class="download-label">Ruta del archivo</div>
+            <div class="file-line">
+              <span class="mono file-name" title="{{ result.output_path }}">{{ result.output_path }}</span>
+              <div class="path-actions">
+                <button class="btn-path" type="button" data-open-folder="{{ result.output_path }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 7h5l2 2h11v8a2 2 0 0 1-2 2H3z"></path>
+                    <path d="M3 7v10a2 2 0 0 0 2 2h14"></path>
+                  </svg>
+                  Ver en carpeta
+                </button>
+                <button class="btn-path" type="button" data-open-file="{{ result.output_path }}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                    <path d="M14 3v5h5"></path>
+                    <path d="M9 13h6"></path>
+                    <path d="M9 17h6"></path>
+                  </svg>
+                  Abrir
+                </button>
               </div>
             </div>
-            <div class="download-actions">
-              {% if result.download_url %}
-                <a id="btnRedownload" href="{{ result.download_url }}" data-download="{{ result.download_url }}" style="display: inline-flex; align-items: center; gap: 6px;">
-                  Descargar de nuevo
-                </a>
-              {% endif %}
-            </div>
           </div>
+        </div>
           {% if result.fail_count > 0 %}
             <div class="hide-on-reset" style="margin-top: 6px;">
               <strong class="small">Errores encontrados ({{ result.errors|length }}{% if result.has_more_errors %} de {{ result.total_errors }}{% endif %}):</strong>
@@ -1085,24 +1388,35 @@ HTML = r"""
 
       <!-- FORMULARIO PRINCIPAL -->
       <form id="form" method="post" action="{{ url_for('extract') }}">
-        <div class="field-block">
-          <label for="raw" class="section-title">Constancias a procesar</label>
-          <div class="section-subtitle">Pega constancias o una tabla; el sistema detecta automaticamente.</div>
+        <div class="input-header">
+          <div class="field-block">
+            <label for="raw" class="section-title">Constancias a procesar</label>
+            <div class="section-subtitle">Pega constancias o una tabla; el sistema detecta automaticamente.</div>
+          </div>
+          <div>
+            <div class="validation-title">Validacion en vivo</div>
+            <div class="validation-subtitle">Constancias registradas</div>
+          </div>
         </div>
-        <textarea 
-          id="raw" 
-          name="raw" 
-          placeholder="Ingresa constancias (una por linea):
+        <div class="input-split">
+          <div class="input-panel">
+            <textarea 
+              id="raw" 
+              name="raw" 
+              placeholder="Ingresa constancias (una por linea):
 25-11-14555665
 25-15-14581710
 
 O pega una tabla completa: el sistema detecta automaticamente"
-        >{{ raw or '' }}</textarea>
+            >{{ raw or '' }}</textarea>
 
-        <div class="input-hint">
-          <span id="preinfo-valid" class="badge badge-success badge-strong" style="display: none;"></span>
-          <span id="preinfo-dup" class="badge badge-warning badge-strong" style="display: none;"></span>
-          <span id="preinfo-invalid" class="badge badge-danger badge-strong" style="display: none;"></span>
+          </div>
+
+          <div class="validation-panel">
+            <div id="validationList" class="validation-list">
+              <div class="validation-empty">Sin datos para validar.</div>
+            </div>
+          </div>
         </div>
 
         <div class="row" style="margin-top: 16px;">
@@ -1116,7 +1430,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
         <div class="row action-row">
           <button id="btnExtract" type="submit">
             <span id="btnIcon">&gt;</span>
-            <span id="btnText">Extraer y descargar</span>
+            <span id="btnText">Procesar</span>
           </button>
           <button id="btnClear" class="btn-secondary" type="button">Limpiar</button>
         </div>
@@ -1143,10 +1457,10 @@ O pega una tabla completa: el sistema detecta automaticamente"
           <div class="hint-body">
             <ol>
               <li>Ingresa constancias (una por linea o tabla completa)</li>
-              <li>Haz clic en "Extraer y descargar" para iniciar el proceso</li>
+              <li>Haz clic en "Procesar" para iniciar el proceso</li>
               <li>Se abrira un navegador por cada constancia</li>
               <li>Si aparece reCAPTCHA, resuelvelo manualmente</li>
-              <li>Se descarga automaticamente un unico Excel con los resultados</li>
+              <li>Al finalizar, aparece un popup para elegir si deseas descargar el archivo</li>
             </ol>
           </div>
         </details>
@@ -1157,6 +1471,17 @@ O pega una tabla completa: el sistema detecta automaticamente"
         </div>
       </form>
 
+    </div>
+  </div>
+
+  <div id="downloadModal" class="modal" data-download="{% if result and result.download_url and result.ok_count > 0 and result.fail_count == 0 %}{{ result.download_url }}{% endif %}">
+    <div class="modal-card">
+      <div class="modal-title">Proceso finalizado</div>
+      <div class="modal-body">El proceso fue exitoso. ¿Deseas descargar el archivo ahora?</div>
+      <div class="modal-actions">
+        <button id="modalClose" class="btn-secondary" type="button">Cerrar</button>
+        <button id="modalDownload" class="btn-primary" type="button">Descargar</button>
+      </div>
     </div>
   </div>
 
@@ -1188,68 +1513,122 @@ O pega una tabla completa: el sistema detecta automaticamente"
       return out;
     }
 
-    function countInvalidTokens(text){
-      const parts = text.split(/[\s,;]+/);
-      let invalid = 0;
-      for (const part of parts) {
-        let token = part.replace(/[^\d\-]/g, "");
-        if (!token) continue;
-        const dashes = (token.match(/-/g) || []).length;
-        if (dashes >= 2 && !CONSTANCIA_TEST_RE.test(token)) {
-          invalid += 1;
-        }
-      }
-      return invalid;
-    }
-
-    function detectStats(){
-      const t = normalizeText(document.getElementById("raw").value);
-      const m = t.match(CONSTANCIA_RE) || [];
-      const seen = new Set();
-      const uniques = [];
-      for (const x of m){
-        const v = x.replace(/\s+/g, "");
-        if (!seen.has(v)){
-          seen.add(v);
-          uniques.push(v);
-        }
-      }
-      return {
-        valid: uniques.length,
-        duplicates: Math.max(0, m.length - uniques.length),
-        invalid: countInvalidTokens(t),
-      };
-    }
-
-    const preinfoValid = document.getElementById("preinfo-valid");
-    const preinfoDup = document.getElementById("preinfo-dup");
-    const preinfoInvalid = document.getElementById("preinfo-invalid");
+    const validationList = document.getElementById("validationList");
     const raw = document.getElementById("raw");
+    const stageChips = document.querySelectorAll(".stage-chip");
+
+    function setStage(stage) {
+      stageChips.forEach((chip) => {
+        chip.classList.toggle("active", chip.getAttribute("data-stage") === String(stage));
+      });
+    }
     
+    function buildValidationItems(text){
+      const t = normalizeText(text);
+      const parts = t.split(/[\s,;|]+/);
+      const items = [];
+      const seen = new Map();
+      const invalidSeen = new Set();
+      for (const part of parts) {
+        const token = part.replace(/[^\d\-]/g, "");
+        if (!token) continue;
+        if (CONSTANCIA_TEST_RE.test(token)) {
+          if (seen.has(token)) {
+            const idx = seen.get(token);
+            items[idx].status = "dup";
+          } else {
+            items.push({ value: token, status: "valid" });
+            seen.set(token, items.length - 1);
+          }
+        } else {
+          const dashes = (token.match(/-/g) || []).length;
+          if (dashes >= 2 && !invalidSeen.has(token)) {
+            items.push({ value: token, status: "invalid" });
+            invalidSeen.add(token);
+          }
+        }
+      }
+      return items;
+    }
+
+    function renderValidation(){
+      if (!validationList) return;
+      const items = buildValidationItems(raw.value);
+      validationList.innerHTML = "";
+      if (items.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "validation-empty";
+        empty.textContent = "Sin datos para validar.";
+        validationList.appendChild(empty);
+        return;
+      }
+      for (const item of items) {
+        const row = document.createElement("div");
+        row.className = `validation-item status-${item.status}`;
+        const value = document.createElement("span");
+        value.className = "validation-value";
+        value.textContent = item.value;
+        const badge = document.createElement("span");
+        badge.className = "validation-badge";
+        badge.textContent = item.status === "valid" ? "Valida" : item.status === "dup" ? "Duplicada" : "Invalida";
+        row.appendChild(value);
+        row.appendChild(badge);
+        validationList.appendChild(row);
+      }
+    }
+
     function updatePreinfo(){
-      const stats = detectStats();
-      if (stats.valid > 0) {
-        preinfoValid.textContent = `Validas: ${stats.valid}`;
-        preinfoValid.style.display = "inline-flex";
-      } else {
-        preinfoValid.style.display = "none";
-      }
-      if (stats.duplicates > 0) {
-        preinfoDup.textContent = `Duplicadas: ${stats.duplicates}`;
-        preinfoDup.style.display = "inline-flex";
-      } else {
-        preinfoDup.style.display = "none";
-      }
-      if (stats.invalid > 0) {
-        preinfoInvalid.textContent = `Invalidas: ${stats.invalid}`;
-        preinfoInvalid.style.display = "inline-flex";
-      } else {
-        preinfoInvalid.style.display = "none";
-      }
+      renderValidation();
     }
     
     raw.addEventListener("input", updatePreinfo);
     updatePreinfo();
+
+    const resultPanel = document.getElementById("resultPanel");
+    if (resultPanel && resultPanel.getAttribute("data-has-result") === "1") {
+      setStage(3);
+    } else {
+      setStage(1);
+    }
+
+    const downloadModal = document.getElementById("downloadModal");
+    const modalDownload = document.getElementById("modalDownload");
+    const modalClose = document.getElementById("modalClose");
+
+    function openDownloadModal() {
+      if (downloadModal) {
+        downloadModal.classList.add("is-open");
+      }
+    }
+
+    function closeDownloadModal() {
+      if (downloadModal) {
+        downloadModal.classList.remove("is-open");
+      }
+    }
+
+    if (downloadModal) {
+      const downloadUrl = downloadModal.getAttribute("data-download") || "";
+      if (downloadUrl) {
+        openDownloadModal();
+      }
+      if (modalDownload) {
+        modalDownload.addEventListener("click", () => {
+          if (downloadUrl) {
+            triggerDownload(downloadUrl);
+          }
+          closeDownloadModal();
+        });
+      }
+      if (modalClose) {
+        modalClose.addEventListener("click", closeDownloadModal);
+      }
+      downloadModal.addEventListener("click", (event) => {
+        if (event.target === downloadModal) {
+          closeDownloadModal();
+        }
+      });
+    }
 
     function resetFormAfterDownload() {
       const progress = document.getElementById("progressContainer");
@@ -1275,39 +1654,70 @@ O pega una tabla completa: el sistema detecta automaticamente"
       }, 2000);
     }
 
-    document.querySelectorAll("[data-copy]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const text = btn.getAttribute("data-copy") || "";
-        try {
-          await navigator.clipboard.writeText(text);
-          btn.textContent = "Copiado";
-          setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
-        } catch (e) {
-          const temp = document.createElement("textarea");
-          temp.value = text;
-          document.body.appendChild(temp);
-          temp.select();
-          document.execCommand("copy");
-          document.body.removeChild(temp);
-          btn.textContent = "Copiado";
-          setTimeout(() => { btn.textContent = "Copiar ruta"; }, 1200);
+    async function openPath(endpoint, pathValue) {
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: pathValue }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) {
+          alert(data.error || "No se pudo abrir la ruta.");
+        }
+      } catch (e) {
+        alert("No se pudo abrir la ruta.");
+      }
+    }
+
+    document.querySelectorAll("[data-open-folder]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pathValue = btn.getAttribute("data-open-folder") || "";
+        if (pathValue) {
+          openPath("/open-folder", pathValue);
         }
       });
     });
 
-    const redownload = document.getElementById("btnRedownload");
-    if (redownload) {
-      redownload.addEventListener("click", (e) => {
-        e.preventDefault();
-        const url = redownload.getAttribute("data-download");
-        if (url) {
-          triggerDownload(url);
-          window.setTimeout(() => {
-            resetFormAfterDownload();
-          }, 800);
+    document.querySelectorAll("[data-open-file]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pathValue = btn.getAttribute("data-open-file") || "";
+        if (pathValue) {
+          openPath("/open-file", pathValue);
         }
       });
+    });
+
+    const themeToggle = document.getElementById("themeToggle");
+    const themeLabel = document.getElementById("themeLabel");
+    const root = document.documentElement;
+
+    function applyTheme(theme) {
+      root.setAttribute("data-theme", theme);
+      localStorage.setItem("secop-theme", theme);
+      const label = theme === "dark" ? "Modo oscuro" : "Modo claro";
+      themeLabel.textContent = label;
+      themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
     }
+
+    function initTheme() {
+      const saved = localStorage.getItem("secop-theme");
+      if (saved === "light" || saved === "dark") {
+        applyTheme(saved);
+        return;
+      }
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      applyTheme(prefersDark ? "dark" : "light");
+    }
+
+    if (themeToggle) {
+      initTheme();
+      themeToggle.addEventListener("click", () => {
+        const current = root.getAttribute("data-theme") || "light";
+        applyTheme(current === "dark" ? "light" : "dark");
+      });
+    }
+
 
     document.getElementById("btnClear").addEventListener("click", () => {
       raw.value = "";
@@ -1319,7 +1729,8 @@ O pega una tabla completa: el sistema detecta automaticamente"
       const btn = document.getElementById("btnExtract");
       btn.disabled = false;
       document.getElementById("btnIcon").textContent = ">";
-      document.getElementById("btnText").textContent = "Extraer y descargar";
+      document.getElementById("btnText").textContent = "Procesar";
+      setStage(1);
       raw.focus();
     });
 
@@ -1339,6 +1750,7 @@ O pega una tabla completa: el sistema detecta automaticamente"
       document.getElementById("btnText").textContent = "Procesando...";
       document.getElementById("runtime").style.display = "block";
       document.getElementById("progressContainer").style.display = "block";
+      setStage(2);
       
       let progress = 0;
       const interval = setInterval(() => {
@@ -1350,14 +1762,6 @@ O pega una tabla completa: el sistema detecta automaticamente"
       window.addEventListener("beforeunload", () => clearInterval(interval));
     });
 
-    {% if result and result.download_url and auto_download %}
-    window.setTimeout(() => {
-      triggerDownload("{{ result.download_url }}");
-      window.setTimeout(() => {
-        resetFormAfterDownload();
-      }, 800);
-    }, 600);
-    {% endif %}
   </script>
 </body>
 </html>
@@ -1374,6 +1778,37 @@ def index():
     cleanup_old_downloads()
     cleanup_old_workspaces()
     return _render_main(raw="", result=None, mode="normal", accumulate=False)
+
+
+@APP.post("/open-folder")
+def open_folder():
+    data = request.get_json(silent=True) or {}
+    resolved, error = _resolve_output_path(data.get("path", ""))
+    if error:
+        return jsonify(ok=False, error=error), 400
+    if not resolved.exists():
+        return jsonify(ok=False, error="Ruta no encontrada."), 404
+    target = resolved if resolved.is_dir() else resolved.parent
+    try:
+        os.startfile(str(target))
+    except Exception:
+        return jsonify(ok=False, error="No se pudo abrir la carpeta."), 500
+    return jsonify(ok=True)
+
+
+@APP.post("/open-file")
+def open_file():
+    data = request.get_json(silent=True) or {}
+    resolved, error = _resolve_output_path(data.get("path", ""))
+    if error:
+        return jsonify(ok=False, error=error), 400
+    if not resolved.exists() or not resolved.is_file():
+        return jsonify(ok=False, error="Archivo no encontrado."), 404
+    try:
+        os.startfile(str(resolved))
+    except Exception:
+        return jsonify(ok=False, error="No se pudo abrir el archivo."), 500
+    return jsonify(ok=True)
 
 
 @APP.post("/extract")
@@ -1472,7 +1907,7 @@ def extract():
         "total_errors": len(errors),
     }
     
-    return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate, auto_download=True)
+    return _render_main(raw=raw, result=result, mode=mode, accumulate=accumulate, auto_download=False)
 
 
 @APP.post("/finalize")
